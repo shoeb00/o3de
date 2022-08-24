@@ -101,6 +101,8 @@
 #include <LmbrCentral/Audio/AudioSystemComponentBus.h>
 #include <Editor/EditorViewportCamera.h>
 
+#include "Log/LogWindow.h"
+
 using namespace AZ;
 using namespace AzQtComponents;
 using namespace AzToolsFramework;
@@ -1496,6 +1498,7 @@ void MainWindow::RegisterStdViewClasses()
     CSettingsManagerDialog::RegisterViewClass();
     AzAssetBrowserWindow::RegisterViewClass();
     AssetEditorWindow::RegisterViewClass();
+    LogWindow::RegisterViewClass();
 
     // Notify that views can now be registered
     AzToolsFramework::EditorEvents::Bus::Broadcast(

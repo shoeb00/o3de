@@ -254,6 +254,7 @@ namespace AzToolsFramework
             setModel(new Logging::LogTableModel(this));
             setItemDelegate(new Logging::LogTableItemDelegate(this));
             setExpandOnSelection(true);
+            setSortingEnabled(true);
 
             CreateActions();
 

@@ -47,6 +47,9 @@ namespace LyViewPane
     static const char* const AnimationEditor = "EMotion FX Animation Editor";
     static const char* const PhysXConfigurationEditor = "PhysX Configuration (PREVIEW)";
 
+
+    static const char* const LogPanel = "Log (PREVIEW)";
+
     static const char* const SliceRelationships = "Slice Relationship View (PREVIEW)";
 
     const int NO_BUILTIN_ACTION = -1;

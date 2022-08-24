@@ -348,6 +348,11 @@ set(FILES
     GameEngine.cpp
     GameEngine.h
     Include/SandboxAPI.h
+    Log/LogPanel.h
+    Log/LogPanel.cpp
+    Log/LogWindow.h
+    Log/LogWindow.cpp
+    Log/LogWindow.ui
     LogFile.cpp
     LogFile.h
     Resource.h
