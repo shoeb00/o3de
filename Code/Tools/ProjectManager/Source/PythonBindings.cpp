@@ -589,6 +589,21 @@ namespace O3DE::ProjectManager
         return AZ::Failure<ErrorPair>(GetErrorPair());
     }
 
+    bool PythonBindings::ValidateRepository(const QString& repoUri)
+    {
+        bool validateResult = false;
+        bool result = ExecuteWithLock(
+            [&]
+            {
+                auto pythonRepoUri = QString_To_Py_String(repoUri);
+                auto pythonValidationResult = m_repo.attr("validate_remote_repo")(pythonRepoUri, true);
+
+                validateResult = pythonValidationResult.cast<bool>();
+            });
+
+        return result && validateResult;
+    }
+
     AZ::Outcome<GemInfo> PythonBindings::GetGemInfo(const QString& path, const QString& projectPath)
     {
         GemInfo gemInfo = GemInfoFromPath(QString_To_Py_String(path), QString_To_Py_Path(projectPath));
@@ -1184,6 +1199,36 @@ namespace O3DE::ProjectManager
                 templates.push_back(ProjectTemplateInfoFromPath(path, QString_To_Py_Path(projectPath)));
             }
         });
+
+        if (!result)
+        {
+            return AZ::Failure();
+        }
+        else
+        {
+            return AZ::Success(AZStd::move(templates));
+        }
+    }
+
+    AZ::Outcome<QVector<ProjectTemplateInfo>> PythonBindings::GetProjectTemplatesForAllRepos(const QString& projectPath)
+    {
+        QVector<ProjectTemplateInfo> templates;
+
+        bool result = ExecuteWithLock(
+            [&]
+            {
+                auto templatePaths = m_repo.attr("get_template_json_paths_from_all_cached_repos")();
+
+                if (pybind11::isinstance<pybind11::set>(templatePaths))
+                {
+                    for (auto path : templatePaths)
+                    {
+                        ProjectTemplateInfo remoteTemplate = ProjectTemplateInfoFromPath(path, QString_To_Py_Path(projectPath));
+                        remoteTemplate.m_isRemote = true;
+                        templates.push_back(remoteTemplate);
+                    }
+                }
+            });
 
         if (!result)
         {

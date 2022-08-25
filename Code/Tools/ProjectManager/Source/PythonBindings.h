@@ -40,6 +40,9 @@ namespace O3DE::ProjectManager
         AZ::Outcome<EngineInfo> GetProjectEngine(const QString& projectPath) override;
         DetailedOutcome SetEngineInfo(const EngineInfo& engineInfo, bool force = false) override;
 
+        // Remote sources
+        bool ValidateRepository(const QString& repoUri) override;
+
         // Gem
         AZ::Outcome<GemInfo> GetGemInfo(const QString& path, const QString& projectPath = {}) override;
         AZ::Outcome<QVector<GemInfo>, AZStd::string> GetEngineGemInfos() override;
@@ -63,6 +66,7 @@ namespace O3DE::ProjectManager
 
         // ProjectTemplate
         AZ::Outcome<QVector<ProjectTemplateInfo>> GetProjectTemplates(const QString& projectPath = {}) override;
+        AZ::Outcome<QVector<ProjectTemplateInfo>> GetProjectTemplatesForAllRepos(const QString& projectPath = {}) override;
 
         // Gem Repos
         AZ::Outcome<void, AZStd::string> RefreshGemRepo(const QString& repoUri) override;
