@@ -133,7 +133,7 @@ UiAnimUndoManager::~UiAnimUndoManager()
 //////////////////////////////////////////////////////////////////////////
 void UiAnimUndoManager::Begin()
 {
-    //CryLog( "<Undo> Begin SuspendCount=%d",m_suspendCount );
+    //AZLOG_DEBUG( "<Undo> Begin SuspendCount=%d",m_suspendCount );
     if (m_bUndoing || m_bRedoing) // If Undoing or redoing now, ignore this calls.
     {
         return;
@@ -178,13 +178,13 @@ void UiAnimUndoManager::Restore(bool bUndo)
         }
         EndRestoreTransaction();
     }
-    //CryLog( "Restore Undo" );
+    //AZLOG_DEBUG( "Restore Undo" );
 }
 
 //////////////////////////////////////////////////////////////////////////
 void UiAnimUndoManager::Accept(const AZStd::string& name)
 {
-    //CryLog( "<Undo> Accept, Suspend Count=%d",m_suspendCount );
+    //AZLOG_DEBUG( "<Undo> Accept, Suspend Count=%d",m_suspendCount );
     if (m_bUndoing || m_bRedoing) // If Undoing or redoing now, ignore this calls.
     {
         return;
@@ -219,7 +219,7 @@ void UiAnimUndoManager::Accept(const AZStd::string& name)
 //////////////////////////////////////////////////////////////////////////
 void UiAnimUndoManager::Cancel()
 {
-    //CryLog( "<Undo> Cancel" );
+    //AZLOG_DEBUG( "<Undo> Cancel" );
     if (m_bUndoing || m_bRedoing) // If Undoing or redoing now, ignore this calls.
     {
         return;
@@ -330,7 +330,7 @@ void UiAnimUndoManager::UndoStep(UiAnimUndoStep* step)
 //////////////////////////////////////////////////////////////////////////
 void UiAnimUndoManager::RecordUndo(UiAnimUndoObject* obj)
 {
-    //CryLog( "<Undo> RecordUndo Name=%s",obj->GetDescription() );
+    //AZLOG_DEBUG( "<Undo> RecordUndo Name=%s",obj->GetDescription() );
 
     if (m_bUndoing || m_bRedoing) // If Undoing or redoing now, ignore this calls.
     {

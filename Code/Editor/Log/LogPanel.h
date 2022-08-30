@@ -37,6 +37,7 @@ namespace Logging
         bool OnError(const char* window, const char* message) override;
         bool OnWarning(const char* window, const char* message) override;
         bool OnPrintf(const char* window, const char* message) override;
+        bool OnOutput(const char* /*window*/, const char* /*message*/) override;
         //////////////////////////////////////////////////////////////////////////
     };
 }

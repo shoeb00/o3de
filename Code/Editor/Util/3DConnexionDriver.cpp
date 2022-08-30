@@ -11,6 +11,8 @@
 
 #include "3DConnexionDriver.h"
 
+#include <AzCore/Console/ILogger.h>
+
 #if defined(AZ_PLATFORM_WINDOWS)
 
 //////////////////////////////////////////////////////////////////////////
@@ -145,7 +147,8 @@ bool C3DConnexionDriver::GetInputMessageData(LPARAM lParam, S3DConnexionMessage&
                 msg.buttons[1] = (unsigned char)pRawHid->bRawData[2];
                 msg.buttons[2] = (unsigned char)pRawHid->bRawData[3];
 
-                CryLog("Button mask: %.2x %.2x %.2x\n", (unsigned char)pRawHid->bRawData[3], (unsigned char)pRawHid->bRawData[2], (unsigned char)pRawHid->bRawData[1]);
+                //CryLog("Button mask: %.2x %.2x %.2x\n", (unsigned char)pRawHid->bRawData[3], (unsigned char)pRawHid->bRawData[2], (unsigned char)pRawHid->bRawData[1]);
+                AZLOG_INFO("Button mask: %.2x %.2x %.2x\n", (unsigned char)pRawHid->bRawData[3], (unsigned char)pRawHid->bRawData[2], (unsigned char)pRawHid->bRawData[1]);
 
                 if (msg.buttons[0] == 1)
                 {

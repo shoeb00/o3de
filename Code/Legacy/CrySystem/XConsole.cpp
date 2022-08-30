@@ -25,6 +25,7 @@
 
 #include <AzFramework/Input/Devices/Keyboard/InputDeviceKeyboard.h>
 #include <AzFramework/Input/Devices/Mouse/InputDeviceMouse.h>
+#include <AzCore/Console/ILogger.h>
 #include <AzCore/std/string/conversions.h>
 #include <AzCore/std/algorithm.h>
 #include <AzCore/Time/ITime.h>
@@ -383,12 +384,12 @@ void CXConsole::LogChangeMessage(const char* name, const bool isConst, const boo
 
     if (allowChange)
     {
-        gEnv->pLog->LogWarning("%s", logMessage.c_str());
-        gEnv->pLog->LogWarning("Modifying marked variables will not be allowed in Release mode!");
+        AZLOG_WARN("%s", logMessage.c_str());
+        AZLOG_WARN("Modifying marked variables will not be allowed in Release mode!");
     }
     else
     {
-        gEnv->pLog->LogError("%s", logMessage.c_str());
+        AZLOG_ERROR("%s", logMessage.c_str());
     }
 }
 
@@ -556,7 +557,7 @@ ICVar* CXConsole::Register(const char* sName, int* src, int iValue, int nFlags, 
     ICVar* pCVar = stl::find_in_map(m_mapVariables, sName, NULL);
     if (pCVar)
     {
-        gEnv->pLog->LogError("[CVARS]: [DUPLICATE] CXConsole::Register(int): variable [%s] is already registered", pCVar->GetName());
+        AZLOG_ERROR("[CVARS]: [DUPLICATE] CXConsole::Register(int): variable [%s] is already registered", pCVar->GetName());
 #if LOG_CVAR_INFRACTIONS_CALLSTACK
         gEnv->pSystem->debug_LogCallStack();
 #endif // LOG_CVAR_INFRACTIONS_CALLSTACK
@@ -582,7 +583,7 @@ ICVar* CXConsole::Register(const char* sName, float* src, float fValue, int nFla
     ICVar* pCVar = stl::find_in_map(m_mapVariables, sName, NULL);
     if (pCVar)
     {
-        gEnv->pLog->Log("[CVARS]: [DUPLICATE] CXConsole::Register(float): variable [%s] is already registered", pCVar->GetName());
+        AZLOG_INFO("[CVARS]: [DUPLICATE] CXConsole::Register(float): variable [%s] is already registered", pCVar->GetName());
 #if LOG_CVAR_INFRACTIONS_CALLSTACK
         gEnv->pSystem->debug_LogCallStack();
 #endif // LOG_CVAR_INFRACTIONS_CALLSTACK
@@ -606,7 +607,7 @@ ICVar* CXConsole::Register(const char* sName, const char** src, const char* defa
     ICVar* pCVar = stl::find_in_map(m_mapVariables, sName, NULL);
     if (pCVar)
     {
-        gEnv->pLog->Log("[CVARS]: [DUPLICATE] CXConsole::Register(const char*): variable [%s] is already registered", pCVar->GetName());
+        AZLOG_INFO("[CVARS]: [DUPLICATE] CXConsole::Register(const char*): variable [%s] is already registered", pCVar->GetName());
 #if LOG_CVAR_INFRACTIONS_CALLSTACK
         gEnv->pSystem->debug_LogCallStack();
 #endif // LOG_CVAR_INFRACTIONS_CALLSTACK
@@ -629,7 +630,7 @@ ICVar* CXConsole::RegisterString(const char* sName, const char* sValue, int nFla
     ICVar* pCVar = stl::find_in_map(m_mapVariables, sName, NULL);
     if (pCVar)
     {
-        gEnv->pLog->Log("[CVARS]: [DUPLICATE] CXConsole::RegisterString(const char*): variable [%s] is already registered", pCVar->GetName());
+        AZLOG_INFO("[CVARS]: [DUPLICATE] CXConsole::RegisterString(const char*): variable [%s] is already registered", pCVar->GetName());
 #if LOG_CVAR_INFRACTIONS_CALLSTACK
         gEnv->pSystem->debug_LogCallStack();
 #endif // LOG_CVAR_INFRACTIONS_CALLSTACK
@@ -649,7 +650,7 @@ ICVar* CXConsole::RegisterFloat(const char* sName, float fValue, int nFlags, con
     ICVar* pCVar = stl::find_in_map(m_mapVariables, sName, NULL);
     if (pCVar)
     {
-        gEnv->pLog->Log("[CVARS]: [DUPLICATE] CXConsole::RegisterFloat(): variable [%s] is already registered", pCVar->GetName());
+        AZLOG_INFO("[CVARS]: [DUPLICATE] CXConsole::RegisterFloat(): variable [%s] is already registered", pCVar->GetName());
 #if LOG_CVAR_INFRACTIONS_CALLSTACK
         gEnv->pSystem->debug_LogCallStack();
 #endif // LOG_CVAR_INFRACTIONS_CALLSTACK
@@ -669,7 +670,7 @@ ICVar* CXConsole::RegisterInt(const char* sName, int iValue, int nFlags, const c
     ICVar* pCVar = stl::find_in_map(m_mapVariables, sName, NULL);
     if (pCVar)
     {
-        gEnv->pLog->Log("[CVARS]: [DUPLICATE] CXConsole::RegisterInt(): variable [%s] is already registered", pCVar->GetName());
+        AZLOG_INFO("[CVARS]: [DUPLICATE] CXConsole::RegisterInt(): variable [%s] is already registered", pCVar->GetName());
 #if LOG_CVAR_INFRACTIONS_CALLSTACK
         gEnv->pSystem->debug_LogCallStack();
 #endif // LOG_CVAR_INFRACTIONS_CALLSTACK
@@ -835,7 +836,8 @@ ICVar* CXConsole::GetCVar(const char* sName)
     if (con_debug)
     {
         // Log call stack on get cvar.
-        CryLog("GetCVar(\"%s\") called", sName);
+        //CryLog("GetCVar(\"%s\") called", sName);
+        AZLOG_INFO("GetCVar(\"%s\") called", sName);
         m_pSystem->debug_LogCallStack();
     }
 
@@ -1374,7 +1376,7 @@ bool CXConsole::AddCommand(const char* sCommand, ConsoleCommandFunc func, int nF
     }
     else
     {
-        gEnv->pLog->LogError("[CVARS]: [DUPLICATE] CXConsole::AddCommand(): console command [%s] is already registered", sCommand);
+        AZLOG_ERROR("[CVARS]: [DUPLICATE] CXConsole::AddCommand(): console command [%s] is already registered", sCommand);
 #if LOG_CVAR_INFRACTIONS_CALLSTACK
         gEnv->pSystem->debug_LogCallStack();
 #endif // LOG_CVAR_INFRACTIONS_CALLSTACK
@@ -1404,7 +1406,7 @@ bool CXConsole::AddCommand(const char* sCommand, const char* sScriptFunc, int nF
     }
     else
     {
-        gEnv->pLog->LogError("[CVARS]: [DUPLICATE] CXConsole::AddCommand(): script command [%s] is already registered", sCommand);
+        AZLOG_ERROR("[CVARS]: [DUPLICATE] CXConsole::AddCommand(): script command [%s] is already registered", sCommand);
 #if LOG_CVAR_INFRACTIONS_CALLSTACK
         gEnv->pSystem->debug_LogCallStack();
 #endif // LOG_CVAR_INFRACTIONS_CALLSTACK
@@ -1527,7 +1529,8 @@ void CXConsole::AuditCVars(IConsoleCmdArgs* pArg)
     int commandCount = 0;
     int cvarCount = 0;
 
-    CryLogAlways("[CVARS]: [BEGIN AUDIT]");
+    //CryLogAlways("[CVARS]: [BEGIN AUDIT]");
+    AZLOG_INFO("[CVARS]: [BEGIN AUDIT]");
 
     for (ConsoleCommandsMapItor it = m_mapCommands.begin(); it != m_mapCommands.end(); ++it)
     {
@@ -1539,7 +1542,14 @@ void CXConsole::AuditCVars(IConsoleCmdArgs* pArg)
         bool shouldLog = ((cheatFlags | devOnlyFlags | dediOnlyFlags) == 0) || (((cheatFlags | devOnlyFlags | dediOnlyFlags) & ~excludeMask) != 0);
         if (shouldLog)
         {
-            CryLogAlways("[CVARS]: [COMMAND] %s%s%s%s%s",
+            //CryLogAlways("[CVARS]: [COMMAND] %s%s%s%s%s",
+            //    command.m_sName.c_str(),
+            //    (cheatFlags != 0) ? " [VF_CHEAT]" : "",
+            //    (devOnlyFlags != 0) ? " [VF_DEV_ONLY]" : "",
+            //    (dediOnlyFlags != 0) ? " [VF_DEDI_ONLY]" : "",
+            //    ""
+            //    );
+            AZLOG_INFO("[CVARS]: [COMMAND] %s%s%s%s%s",
                 command.m_sName.c_str(),
                 (cheatFlags != 0) ? " [VF_CHEAT]" : "",
                 (devOnlyFlags != 0) ? " [VF_DEV_ONLY]" : "",
@@ -1563,7 +1573,16 @@ void CXConsole::AuditCVars(IConsoleCmdArgs* pArg)
         bool shouldLog = ((cheatFlags | constFlags | readOnlyFlags | devOnlyFlags | dediOnlyFlags) == 0) || (((cheatFlags | constFlags | readOnlyFlags | devOnlyFlags | dediOnlyFlags) & ~excludeMask) != 0);
         if (shouldLog)
         {
-            CryLogAlways("[CVARS]: [VARIABLE] %s%s%s%s%s%s%s",
+            //CryLogAlways("[CVARS]: [VARIABLE] %s%s%s%s%s%s%s",
+            //    pVariable->GetName(),
+            //    (cheatFlags != 0) ? " [VF_CHEAT]" : "",
+            //    (constFlags != 0) ? " [VF_CONST_CVAR]" : "",
+            //    (readOnlyFlags != 0) ? " [VF_READONLY]" : "",
+            //    (devOnlyFlags != 0) ? " [VF_DEV_ONLY]" : "",
+            //    (dediOnlyFlags != 0) ? " [VF_DEDI_ONLY]" : "",
+            //    ""
+            //    );
+            AZLOG_INFO("[CVARS]: [VARIABLE] %s%s%s%s%s%s%s",
                 pVariable->GetName(),
                 (cheatFlags != 0) ? " [VF_CHEAT]" : "",
                 (constFlags != 0) ? " [VF_CONST_CVAR]" : "",
@@ -1576,7 +1595,8 @@ void CXConsole::AuditCVars(IConsoleCmdArgs* pArg)
         }
     }
 
-    CryLogAlways("[CVARS]: [END AUDIT] (commands %d/%" PRISIZE_T "; variables %d/%" PRISIZE_T ")", commandCount, m_mapCommands.size(), cvarCount, m_mapVariables.size());
+    //CryLogAlways("[CVARS]: [END AUDIT] (commands %d/%" PRISIZE_T "; variables %d/%" PRISIZE_T ")", commandCount, m_mapCommands.size(), cvarCount, m_mapVariables.size());
+    AZLOG_INFO("[CVARS]: [END AUDIT] (commands %d/%" PRISIZE_T "; variables %d/%" PRISIZE_T ")", commandCount, m_mapCommands.size(), cvarCount, m_mapVariables.size());
 }
 #endif // ALLOW_AUDIT_CVARS
 
@@ -1985,7 +2005,8 @@ void CXConsole::ExecuteDeferredCommands()
 //////////////////////////////////////////////////////////////////////////
 void CXConsole::ExecuteCommand(CConsoleCommand& cmd, AZStd::string& str, bool bIgnoreDevMode)
 {
-    CryLog ("[CONSOLE] Executing console command '%s'", str.c_str());
+    //CryLog ("[CONSOLE] Executing console command '%s'", str.c_str());
+    AZLOG_INFO("[CONSOLE] Executing console command '%s'", str.c_str());
     INDENT_LOG_DURING_SCOPE();
 
     std::vector<AZStd::string> args;
@@ -2035,7 +2056,7 @@ void CXConsole::ExecuteCommand(CConsoleCommand& cmd, AZStd::string& str, bool bI
         if (((cmd.m_nFlags & (VF_CHEAT | VF_CHEAT_NOCHECK | VF_CHEAT_ALWAYS_CHECK)) != 0) && !(gEnv->IsEditor()))
         {
 #if LOG_CVAR_INFRACTIONS
-            gEnv->pLog->LogError("[CVARS]: [EXECUTE] command %s is marked [VF_CHEAT]", cmd.m_sName.c_str());
+            AZLOG_ERROR("[CVARS]: [EXECUTE] command %s is marked [VF_CHEAT]", cmd.m_sName.c_str());
 #if LOG_CVAR_INFRACTIONS_CALLSTACK
             gEnv->pSystem->debug_LogCallStack();
 #endif // LOG_CVAR_INFRACTIONS_CALLSTACK

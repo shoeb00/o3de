@@ -12,12 +12,14 @@
 #include <QDateTime>
 #include <QTimer>
 
+#pragma optimize("", off)
+
 namespace AzToolsFramework
 {
     namespace LogPanel
     {
         // some tweakables
-        static int s_delayBetweenStyledTraceprintfUpdates = 250; // milliseconds between pumping the traceprintf messages, lower will eat more performance but be more responsive
+        static int s_delayBetweenStyledTraceprintfUpdates = 50; // milliseconds between pumping the traceprintf messages, lower will eat more performance but be more responsive
 
         StyledTracePrintFLogPanel::StyledTracePrintFLogPanel(QWidget* parent)
             : StyledLogPanel(parent)
@@ -32,6 +34,8 @@ namespace AzToolsFramework
         StyledTracePrintFLogTab::StyledTracePrintFLogTab(const TabSettings& settings, QWidget* parent)
             : StyledLogTab(settings, parent)
         {
+            LogTraceRequests::Bus::Handler::BusConnect();
+
             m_alreadyQueuedDrainMessage = false;
 
             // add clear to context menu:
@@ -53,7 +57,7 @@ namespace AzToolsFramework
 
         bool StyledTracePrintFLogTab::OnAssert(const char* message)
         {
-            if (settings().m_filterFlags & (0x01 << TabSettings::FILTER_ERROR))
+            if ((GetSettings().m_filterFlags & TabSettings::FilterType::FILTER_ERROR) != TabSettings::FilterType::FILTER_NONE)
             {
                 LogTraceMessage(Logging::LogLine::TYPE_ERROR, "ASSERT", message);
             }
@@ -62,7 +66,7 @@ namespace AzToolsFramework
         }
         bool StyledTracePrintFLogTab::OnException(const char* message)
         {
-            if (settings().m_filterFlags & (0x01 << TabSettings::FILTER_ERROR))
+            if ((GetSettings().m_filterFlags & TabSettings::FilterType::FILTER_ERROR) != TabSettings::FilterType::FILTER_NONE)
             {
                 LogTraceMessage(Logging::LogLine::TYPE_ERROR, "EXCEPTION", message);
             }
@@ -72,7 +76,7 @@ namespace AzToolsFramework
 
         bool StyledTracePrintFLogTab::OnError(const char* window, const char* message)
         {
-            if (settings().m_filterFlags & (0x01 << TabSettings::FILTER_ERROR))
+            if ((GetSettings().m_filterFlags & TabSettings::FilterType::FILTER_ERROR) != TabSettings::FilterType::FILTER_NONE)
             {
                 LogTraceMessage(Logging::LogLine::TYPE_ERROR, window, message);
             }
@@ -81,7 +85,7 @@ namespace AzToolsFramework
 
         bool StyledTracePrintFLogTab::OnWarning(const char* window, const char* message)
         {
-            if (settings().m_filterFlags & (0x01 << TabSettings::FILTER_WARNING))
+            if ((GetSettings().m_filterFlags & TabSettings::FilterType::FILTER_WARNING) != TabSettings::FilterType::FILTER_NONE)
             {
                 LogTraceMessage(Logging::LogLine::TYPE_WARNING, window, message);
             }
@@ -91,14 +95,37 @@ namespace AzToolsFramework
         bool StyledTracePrintFLogTab::OnPrintf(const char* window, const char* message)
         {
             if (
-                (settings().m_filterFlags & (0x01 << TabSettings::FILTER_DEBUG)) &&
+                ((GetSettings().m_filterFlags & TabSettings::FilterType::FILTER_DEBUG) != TabSettings::FilterType::FILTER_NONE) &&
                 (azstricmp(window, "debug") == 0)
                 )
             {
                 LogTraceMessage(Logging::LogLine::TYPE_DEBUG, window, message);
             }
-            else if (settings().m_filterFlags & (0x01 << TabSettings::FILTER_NORMAL) &&
+            else if ((GetSettings().m_filterFlags & TabSettings::FilterType::FILTER_NORMAL) != TabSettings::FilterType::FILTER_NONE &&
                 (azstricmp(window, "debug") != 0))
+            {
+                LogTraceMessage(Logging::LogLine::TYPE_MESSAGE, window, message);
+            }
+            return false;
+        }
+
+        //bool StyledTracePrintFLogTab::OnPreError(const char* window, const char* /*fileName*/, int /*line*/, const char* /*func*/, const char* message)
+        //{
+        //    LogTraceMessage(Logging::LogLine::TYPE_ERROR, window, message);
+
+        //    return false;
+        //}
+
+        //bool StyledTracePrintFLogTab::OnPreWarning(const char* window, const char* /*fileName*/, int /*line*/, const char* /*func*/, const char* message)
+        //{
+        //    LogTraceMessage(Logging::LogLine::TYPE_WARNING, window, message);
+
+        //    return false;
+        //}
+
+        bool StyledTracePrintFLogTab::OnOutput(const char* window, const char* message)
+        {
+            if (azstricmp(window, "all") == 0)
             {
                 LogTraceMessage(Logging::LogLine::TYPE_MESSAGE, window, message);
             }
@@ -113,11 +140,15 @@ namespace AzToolsFramework
             // is it for this window?
             // empty window discriminator string signifies that this OnLog receives ALL
             // hard coded "All" in the dialog to mean the same
-            bool isMyWindowAll = (!settings().m_window.length()) || (azstricmp(settings().m_window.c_str(), "All") == 0);
 
-            if (isMyWindowAll || ((window) && (azstricmp(window, settings().m_window.c_str()) == 0)))
+            const TabSettings& settings = GetSettings();
+            bool isMyWindowAll = (!settings.m_window.length()) || (azstricmp(settings.m_window.c_str(), "All") == 0);
+
+            bool filterMatch = ((type & settings.m_filterFlags) != TabSettings::FilterType::FILTER_NONE);
+
+            if (filterMatch || isMyWindowAll || ((window) && (azstricmp(window, settings.m_window.c_str()) == 0)))
             {
-                if (alwaysShowMessage || (settings().m_textFilter.length() == 0 || strstr(message, settings().m_textFilter.c_str())))
+                if (alwaysShowMessage || (settings.m_textFilter.length() == 0 || strstr(message, settings.m_textFilter.c_str())))
                 {
                     {
                         AZStd::lock_guard<AZStd::mutex> lock(m_bufferedLinesMutex);
@@ -198,6 +229,7 @@ namespace AzToolsFramework
 
         StyledTracePrintFLogTab::~StyledTracePrintFLogTab()
         {
+            LogTraceRequests::Bus::Handler::BusDisconnect();
             AZ::Debug::TraceMessageBus::Handler::BusDisconnect();
         }
 
@@ -206,3 +238,5 @@ namespace AzToolsFramework
 
 #include "UI/Logging/moc_StyledTracePrintFLogPanel.cpp"
 
+
+#pragma optimize("", on)

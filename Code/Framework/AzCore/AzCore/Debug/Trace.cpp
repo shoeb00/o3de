@@ -27,6 +27,8 @@
 #include <AzCore/Console/IConsole.h>
 #include <AzCore/std/chrono/chrono.h>
 
+#pragma optimize("", off)
+
 namespace AZ::Debug
 {
     struct StackFrame;
@@ -720,3 +722,6 @@ namespace AZ::Debug
         }
     }
 } // namspace AZ::Debug
+
+
+#pragma optimize("", on)

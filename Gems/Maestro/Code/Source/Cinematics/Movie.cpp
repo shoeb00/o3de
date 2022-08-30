@@ -613,7 +613,7 @@ void CMovieSystem::PlaySequence(const char* pSequenceName, IAnimSequence* pParen
     }
     else
     {
-        gEnv->pLog->Log ("CMovieSystem::PlaySequence: Error: Sequence \"%s\" not found", pSequenceName);
+        AZLOG_INFO("CMovieSystem::PlaySequence: Error: Sequence \"%s\" not found", pSequenceName);
     }
 }
 
@@ -1413,7 +1413,7 @@ bool CMovieSystem::AddMovieListener(IAnimSequence* sequence, IMovieListener* pLi
     assert (pListener != 0);
     if (sequence != NULL && std::find(m_sequences.begin(), m_sequences.end(), sequence) == m_sequences.end())
     {
-        gEnv->pLog->Log ("CMovieSystem::AddMovieListener: Sequence %p unknown to CMovieSystem", sequence);
+        AZLOG_INFO("CMovieSystem::AddMovieListener: Sequence %p unknown to CMovieSystem", sequence);
         return false;
     }
 
@@ -1426,7 +1426,7 @@ bool CMovieSystem::RemoveMovieListener(IAnimSequence* sequence, IMovieListener* 
     if (sequence != NULL
         && std::find(m_sequences.begin(), m_sequences.end(), sequence) == m_sequences.end())
     {
-        gEnv->pLog->Log ("CMovieSystem::AddMovieListener: Sequence %p unknown to CMovieSystem", sequence);
+        AZLOG_INFO("CMovieSystem::AddMovieListener: Sequence %p unknown to CMovieSystem", sequence);
         return false;
     }
     return stl::find_and_erase(m_movieListenerMap[sequence], pListener);
@@ -1437,7 +1437,7 @@ void CMovieSystem::GoToFrameCmd(IConsoleCmdArgs* pArgs)
 {
     if (pArgs->GetArgCount() < 3)
     {
-        gEnv->pLog->LogError("GoToFrame failed! You should provide two arguments of 'sequence name' & 'frame time'.");
+        AZLOG_ERROR("GoToFrame failed! You should provide two arguments of 'sequence name' & 'frame time'.");
         return;
     }
 
@@ -1457,7 +1457,8 @@ void CMovieSystem::ListSequencesCmd([[maybe_unused]] IConsoleCmdArgs* pArgs)
         IAnimSequence* pSeq = gEnv->pMovieSystem->GetSequence(i);
         if (pSeq)
         {
-            CryLogAlways("%s", pSeq->GetName());
+            //CryLogAlways("%s", pSeq->GetName());
+            AZLOG_INFO("%s", pSeq->GetName());
         }
     }
 }

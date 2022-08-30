@@ -91,7 +91,7 @@ namespace AzToolsFramework
 
         bool AZTracePrintFLogTab::OnAssert(const char* message)
         {
-            if (m_settings.m_filterFlags & (0x01 << TabSettings::FILTER_ERROR))
+            if ((m_settings.m_filterFlags & TabSettings::FilterType::FILTER_ERROR) != TabSettings::FilterType::FILTER_NONE)
             {
                 LogTraceMessage(Logging::LogLine::TYPE_ERROR, "ASSERT", message);
             }
@@ -100,7 +100,7 @@ namespace AzToolsFramework
         }
         bool AZTracePrintFLogTab::OnException(const char* message)
         {
-            if (m_settings.m_filterFlags & (0x01 << TabSettings::FILTER_ERROR))
+            if ((m_settings.m_filterFlags & TabSettings::FilterType::FILTER_ERROR) != TabSettings::FilterType::FILTER_NONE)
             {
                 LogTraceMessage(Logging::LogLine::TYPE_ERROR, "EXCEPTION", message);
             }
@@ -110,7 +110,7 @@ namespace AzToolsFramework
 
         bool AZTracePrintFLogTab::OnError(const char* window, const char* message)
         {
-            if (m_settings.m_filterFlags & (0x01 << TabSettings::FILTER_ERROR))
+            if ((m_settings.m_filterFlags & TabSettings::FilterType::FILTER_ERROR) != TabSettings::FilterType::FILTER_NONE)
             {
                 LogTraceMessage(Logging::LogLine::TYPE_ERROR, window, message);
             }
@@ -119,7 +119,7 @@ namespace AzToolsFramework
 
         bool AZTracePrintFLogTab::OnWarning(const char* window, const char* message)
         {
-            if (m_settings.m_filterFlags & (0x01 << TabSettings::FILTER_WARNING))
+            if ((m_settings.m_filterFlags & TabSettings::FilterType::FILTER_WARNING) != TabSettings::FilterType::FILTER_NONE)
             {
                 LogTraceMessage(Logging::LogLine::TYPE_WARNING, window, message);
             }
@@ -129,13 +129,13 @@ namespace AzToolsFramework
         bool AZTracePrintFLogTab::OnPrintf(const char* window, const char* message)
         {
             if (
-                (m_settings.m_filterFlags & (0x01 << TabSettings::FILTER_DEBUG)) &&
+                (m_settings.m_filterFlags & TabSettings::FilterType::FILTER_DEBUG) != TabSettings::FilterType::FILTER_NONE &&
                 (azstricmp(window, "debug") == 0)
                 )
             {
                 LogTraceMessage(Logging::LogLine::TYPE_DEBUG, window, message);
             }
-            else if (m_settings.m_filterFlags & (0x01 << TabSettings::FILTER_NORMAL) &&
+            else if ((m_settings.m_filterFlags & TabSettings::FilterType::FILTER_NORMAL) != TabSettings::FilterType::FILTER_NONE &&
                 (azstricmp(window, "debug") != 0))
             {
                 LogTraceMessage(Logging::LogLine::TYPE_MESSAGE, window, message);

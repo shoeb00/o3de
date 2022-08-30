@@ -29,6 +29,8 @@ AZ_PUSH_DISABLE_DLL_EXPORT_MEMBER_WARNING
 #include <Log/ui_LogWindow.h>
 AZ_POP_DISABLE_DLL_EXPORT_MEMBER_WARNING
 
+#pragma optimize("", off)
+
 namespace LogUtils
 {
    /* LogWindow* CreateLogWithAsset(const AZ::Data::Asset<AZ::Data::AssetData> assetRef)
@@ -52,14 +54,9 @@ LogWindow::LogWindow(QWidget* parent)
     : QWidget(parent)
     , m_ui(new Ui::LogWindowClass())
 {
-    //using namespace AzToolsFramework::Log;
-
     m_ui->setupUi(this);
 
-    //connect(m_ui->m_LogWidget, &LogWidget::OnAssetSaveFailedSignal, this, &LogWindow::OnAssetSaveFailed);
-    //connect(m_ui->m_LogWidget, &LogWidget::OnAssetOpenedSignal, this, &LogWindow::OnAssetOpened);
-
-    //BusConnect();
+    UnrollCache();
 }
 
 LogWindow::~LogWindow()
@@ -109,6 +106,8 @@ LogWindow::~LogWindow()
 //    }
 //}
 
+#include <AzCore/Component/TickBus.h>
+
 void LogWindow::RegisterViewClass()
 {
     AzToolsFramework::ViewPaneOptions options;
@@ -116,6 +115,31 @@ void LogWindow::RegisterViewClass()
     options.showOnToolsToolbar = true;
     options.toolbarIcon = ":/Menu/asset_editor.svg";
     AzToolsFramework::RegisterViewPane<LogWindow>(LyViewPane::LogPanel, LyViewPane::CategoryTools, options);
+}
+
+void LogWindow::UnrollCache()
+{
+    // Unroll cache
+    bool foundEntry = false;
+    do
+    {
+        auto& cache = LogWindow::HookUpCache().m_cache;
+
+        if (cache.empty())
+        {
+            foundEntry = false;
+        }
+        else
+        {
+            foundEntry = true;
+            const LogCache::LogEntry& log = cache.front();
+
+            // Send it to the view without sending the log again
+            AzToolsFramework::LogPanel::LogTraceRequests::Bus::Broadcast(&AzToolsFramework::LogPanel::LogTraceRequests::LogTraceMessage, log.m_messageType, log.m_window.c_str(), log.m_message.c_str(), false);
+
+            cache.pop();
+        }
+    } while (foundEntry);
 }
 
 //void LogWindow::OnAssetOpened(const AZ::Data::Asset<AZ::Data::AssetData>& asset)
@@ -161,3 +185,6 @@ void LogWindow::closeEvent(QCloseEvent* /*event*/)
 //}
 
 #include <Log/moc_LogWindow.cpp>
+
+
+#pragma optimize("", on)

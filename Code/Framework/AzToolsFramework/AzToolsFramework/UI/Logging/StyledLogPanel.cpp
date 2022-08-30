@@ -379,7 +379,7 @@ namespace AzToolsFramework
             }
         }
 
-        TabSettings StyledLogTab::settings() const
+        TabSettings StyledLogTab::GetSettings() const
         {
             return m_settings;
         }

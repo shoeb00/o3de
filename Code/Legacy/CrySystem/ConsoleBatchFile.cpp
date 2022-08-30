@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include "System.h"
 #include <AzCore/IO/FileIO.h>
+#include <AzCore/Console/ILogger.h>
 
 IConsole* CConsoleBatchFile::m_pConsole = NULL;
 
@@ -105,11 +106,13 @@ bool CConsoleBatchFile::ExecuteConfigFile(const char* sFilename)
         }
         else
         {
-            CryLog("%s \"%s\" not found!", szLog, filename.c_str());
+            //CryLog("%s \"%s\" not found!", szLog, filename.c_str());
+            AZLOG_INFO("%s \"%s\" not found!", szLog, filename.c_str());
             return false;
         }
 
-        CryLog("%s \"%s\" found in %s ...", szLog, PathUtil::GetFile(filenameLog.c_str()), PathUtil::GetPath(filenameLog).c_str());
+        //CryLog("%s \"%s\" found in %s ...", szLog, PathUtil::GetFile(filenameLog.c_str()), PathUtil::GetPath(filenameLog).c_str());
+        AZLOG_INFO("%s \"%s\" found in %s ...", szLog, PathUtil::GetFile(filenameLog.c_str()), PathUtil::GetPath(filenameLog).c_str());
     }
 
     size_t nLen = file.GetLength();

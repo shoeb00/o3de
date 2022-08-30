@@ -20,6 +20,17 @@ namespace AzToolsFramework
 {
     namespace LogPanel
     {
+        class LogTraceRequests : public AZ::EBusTraits
+        {
+        public:
+
+            using MutexType = AZStd::recursive_mutex;
+
+            virtual void LogTraceMessage(Logging::LogLine::LogType type, const char* window, const char* message, bool alwaysShowMessage = false) = 0;
+
+            using Bus = AZ::EBus<LogTraceRequests>;
+        };
+
         class StyledTracePrintFLogPanel
             : public StyledLogPanel
         {
@@ -36,6 +47,7 @@ namespace AzToolsFramework
         class StyledTracePrintFLogTab
             : public StyledLogTab
             , protected AZ::Debug::TraceMessageBus::Handler
+            , protected LogTraceRequests::Bus::Handler
         {
             Q_OBJECT;
         public:
@@ -45,16 +57,21 @@ namespace AzToolsFramework
 
             //////////////////////////////////////////////////////////////////////////
             // TraceMessagesBus
-            virtual bool OnAssert(const char* message);
-            virtual bool OnException(const char* message);
-            virtual bool OnError(const char* window, const char* message);
-            virtual bool OnWarning(const char* window, const char* message);
-            virtual bool OnPrintf(const char* window, const char* message);
+            bool OnAssert(const char* message) override;
+            bool OnException(const char* message) override;
+            bool OnError(const char* window, const char* message) override;
+            bool OnWarning(const char* window, const char* message) override;
+            bool OnPrintf(const char* window, const char* message) override;
+            bool OnOutput(const char* window, const char* message) override;
+            //bool OnPreError(const char* /*window*/, const char* /*fileName*/, int /*line*/, const char* /*func*/, const char* /*message*/) override;
+            //bool OnPreWarning(const char* /*window*/, const char* /*fileName*/, int /*line*/, const char* /*func*/, const char* /*message*/) override;
+
             //////////////////////////////////////////////////////////////////////////
 
         protected:
+
             // Log a message received from the TraceMessageBus
-            void LogTraceMessage(Logging::LogLine::LogType type, const char* window, const char* message, bool alwaysShowMessage = false);
+            void LogTraceMessage(Logging::LogLine::LogType type, const char* window, const char* message, bool alwaysShowMessage = false) override;
 
             // note that we actually buffer the lines up since we could receive them at any time from this bus, even on another thread
             // so we dont push them to the GUI immediately.  Instead we connect to the tickbus and drain the queue on tick.

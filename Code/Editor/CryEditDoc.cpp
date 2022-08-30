@@ -17,6 +17,7 @@
 
 // AzCore
 #include <AzCore/Component/TransformBus.h>
+#include <AzCore/Console/ILogger.h>
 #include <AzCore/Asset/AssetManager.h>
 #include <AzCore/Interface/Interface.h>
 #include <AzCore/Time/ITime.h>
@@ -943,7 +944,8 @@ bool CCryEditDoc::BeforeSaveDocument(const QString& lpszPathName, TSaveDocContex
         return false;
     }
 
-    CryLog("Saving to %s...", levelFriendlyName.toUtf8().data());
+    //CryLog("Saving to %s...", levelFriendlyName.toUtf8().data());
+    AZLOG_INFO("Saving to %s...", levelFriendlyName.toUtf8().data());
     GetIEditor()->Notify(eNotify_OnBeginSceneSave);
 
     bool bSaved(true);
@@ -1189,7 +1191,7 @@ bool CCryEditDoc::SaveLevel(const QString& filename)
             AZ_PROFILE_SCOPE(Editor, "CCryEditDoc::SaveLevel Open PakFile");
             if (!pakFile.Open(tempSaveFile.toUtf8().data(), false))
             {
-                gEnv->pLog->LogWarning("Unable to open pack file %s for writing", tempSaveFile.toUtf8().data());
+                AZLOG_WARN("Unable to open pack file %s for writing", tempSaveFile.toUtf8().data());
                 return false;
             }
         }
@@ -1242,12 +1244,12 @@ bool CCryEditDoc::SaveLevel(const QString& filename)
             }
             else
             {
-                gEnv->pLog->LogWarning("Unable to write the level data to file %s", tempSaveFile.toUtf8().data());
+                AZLOG_WARN("Unable to write the level data to file %s", tempSaveFile.toUtf8().data());
             }
         }
         else
         {
-            gEnv->pLog->LogWarning("Unable to generate entity data for level save %s", tempSaveFile.toUtf8().data());
+            AZLOG_WARN("Unable to generate entity data for level save %s", tempSaveFile.toUtf8().data());
         }
 
         pakFile.Close();
@@ -1280,7 +1282,7 @@ bool CCryEditDoc::SaveLevel(const QString& filename)
 
     if (!TryRenameFile(tempSaveFile, fullPathName))
     {
-        gEnv->pLog->LogWarning("Unable to move file %s to %s when saving", tempSaveFile.toUtf8().data(), fullPathName.toUtf8().data());
+        AZLOG_WARN("Unable to move file %s to %s when saving", tempSaveFile.toUtf8().data(), fullPathName.toUtf8().data());
         return false;
     }
 
@@ -1302,14 +1304,14 @@ bool CCryEditDoc::SaveSlice(const QString& filename)
         &AzToolsFramework::SliceEditorEntityOwnershipServiceRequestBus::Events::GetEditorRootSlice);
     if (!liveSlice)
     {
-        gEnv->pLog->LogWarning("Slice data not found.");
+        AZLOG_WARN("Slice data not found.");
         return false;
     }
 
     AZStd::unordered_set<AZ::EntityId> liveEntityIds;
     if (!liveSlice->GetEntityIds(liveEntityIds))
     {
-        gEnv->pLog->LogWarning("Error getting entities from slice.");
+        AZLOG_WARN("Error getting entities from slice.");
         return false;
     }
 
@@ -1324,7 +1326,7 @@ bool CCryEditDoc::SaveSlice(const QString& filename)
         {
             if (foundRootEntity)
             {
-                gEnv->pLog->LogWarning("Cannot save a slice with multiple root entities.");
+                AZLOG_WARN("Cannot save a slice with multiple root entities.");
                 return false;
             }
 
@@ -1342,7 +1344,7 @@ bool CCryEditDoc::SaveSlice(const QString& filename)
 
     if (!targetAssetId.IsValid() || openedAssetId != targetAssetId)
     {
-        gEnv->pLog->LogWarning("Slice editor can only modify existing slices. 'New Slice' and 'Save As' are not currently supported.");
+        AZLOG_WARN("Slice editor can only modify existing slices. 'New Slice' and 'Save As' are not currently supported.");
         return false;
     }
 
@@ -1352,7 +1354,7 @@ bool CCryEditDoc::SaveSlice(const QString& filename)
 
     if (!sliceAssetRef)
     {
-        gEnv->pLog->LogWarning("Error loading slice: %s", filename.toUtf8().data());
+        AZLOG_WARN("Error loading slice: %s", filename.toUtf8().data());
         return false;
     }
 
@@ -1360,14 +1362,14 @@ bool CCryEditDoc::SaveSlice(const QString& filename)
     AZ::SliceComponent* assetSlice = sliceAssetRef.Get()->GetComponent();
     if (!assetSlice)
     {
-        gEnv->pLog->LogWarning("Error reading slice: %s", filename.toUtf8().data());
+        AZLOG_WARN("Error reading slice: %s", filename.toUtf8().data());
         return false;
     }
 
     AZStd::unordered_set<AZ::EntityId> assetEntityIds;
     if (!assetSlice->GetEntityIds(assetEntityIds))
     {
-        gEnv->pLog->LogWarning("Error getting entities from slice: %s", filename.toUtf8().data());
+        AZLOG_WARN("Error getting entities from slice: %s", filename.toUtf8().data());
         return false;
     }
 
@@ -1392,7 +1394,7 @@ bool CCryEditDoc::SaveSlice(const QString& filename)
     SliceTransaction::TransactionPtr transaction = SliceTransaction::BeginSlicePush(sliceAssetRef);
     if (!transaction)
     {
-        gEnv->pLog->LogWarning("Unable to update slice: %s", filename.toUtf8().data());
+        AZLOG_WARN("Unable to update slice: %s", filename.toUtf8().data());
         return false;
     }
 
@@ -1402,7 +1404,7 @@ bool CCryEditDoc::SaveSlice(const QString& filename)
         SliceTransaction::Result result = transaction->AddEntity(id);
         if (!result)
         {
-            gEnv->pLog->LogWarning("Error adding entity with ID %s to slice: %s\n\n%s",
+            AZLOG_WARN("Error adding entity with ID %s to slice: %s\n\n%s",
                 id.ToString().c_str(), filename.toUtf8().data(), result.GetError().c_str());
             return false;
         }
@@ -1413,7 +1415,7 @@ bool CCryEditDoc::SaveSlice(const QString& filename)
         SliceTransaction::Result result = transaction->RemoveEntity(id);
         if (!result)
         {
-            gEnv->pLog->LogWarning("Error removing entity with ID %s from slice: %s\n\n%s",
+            AZLOG_WARN("Error removing entity with ID %s from slice: %s\n\n%s",
                 id.ToString().c_str(), filename.toUtf8().data(), result.GetError().c_str());
             return false;
         }
@@ -1424,7 +1426,7 @@ bool CCryEditDoc::SaveSlice(const QString& filename)
         SliceTransaction::Result result = transaction->UpdateEntity(id);
         if (!result)
         {
-            gEnv->pLog->LogWarning("Error updating entity with ID %s in slice: %s\n\n%s",
+            AZLOG_WARN("Error updating entity with ID %s in slice: %s\n\n%s",
                 id.ToString().c_str(), filename.toUtf8().data(), result.GetError().c_str());
             return false;
         }
@@ -1439,7 +1441,7 @@ bool CCryEditDoc::SaveSlice(const QString& filename)
 
     if (!commitResult)
     {
-        gEnv->pLog->LogWarning("Failed to to save slice \"%s\".\n\nError:\n%s",
+        AZLOG_WARN("Failed to to save slice \"%s\".\n\nError:\n%s",
             filename.toUtf8().data(), commitResult.GetError().c_str());
         return false;
     }
@@ -1790,7 +1792,7 @@ bool CCryEditDoc::BackupBeforeSave(bool force)
     AZ_TracePrintf("Editor", "Saving level backup to '%s'...\n", backupPath.toUtf8().data());
     if (IFileUtil::ETREECOPYOK != CFileUtil::CopyTree(sourcePath, backupPath, true, false, ignoredFiles.toUtf8().data()))
     {
-        gEnv->pLog->LogWarning("Attempting to save backup to %s before saving, but could not write all files.", backupPath.toUtf8().data());
+        AZLOG_WARN("Attempting to save backup to %s before saving, but could not write all files.", backupPath.toUtf8().data());
         return false;
     }
     return true;
@@ -1916,7 +1918,7 @@ void CCryEditDoc::OnStartLevelResourceList()
             // This should be fixed because ExecuteCommandLine is executed right after engine init as we assume the
             // engine already has all data loaded an is initialized to process commands. Loading data afterwards means
             // some init was done later which can cause problems when running in the engine batch mode (executing console commands).
-            gEnv->pLog->LogError("'%s' was loaded after engine init but before level load/new (should be fixed)", pResFilename);
+            AZLOG_ERROR("'%s' was loaded after engine init but before level load/new (should be fixed)", pResFilename);
             pResFilename = gEnv->pCryPak->GetResourceList(AZ::IO::IArchive::RFOM_Level)->GetNext();
         }
 

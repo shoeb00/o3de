@@ -1433,7 +1433,8 @@ void CEditorImpl::ReduceMemory()
     if (hHeap)
     {
         uint64 maxsize = (uint64)HeapCompact(hHeap, 0);
-        CryLogAlways("Max Free Memory Block = %I64d Kb", maxsize / 1024);
+        //CryLogAlways("Max Free Memory Block = %I64d Kb", maxsize / 1024);
+        AZLOG_INFO("Max Free Memory Block = %I64d Kb", maxsize / 1024);
     }
 #endif
 }

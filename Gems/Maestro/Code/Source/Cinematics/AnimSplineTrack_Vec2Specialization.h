@@ -17,6 +17,7 @@
 #pragma once
 
 #include <AzCore/Serialization/EditContext.h>
+#include <AzCore/Console/ILogger.h>
 
 namespace spline
 {
@@ -191,12 +192,14 @@ inline bool TAnimSplineTrack<Vec2>::Serialize(XmlNodeRef& xmlNode, bool bLoading
             XmlNodeRef keyNode = xmlNode->getChild(i);
             if (!keyNode->getAttr("time", key.time))
             {
-                CryLog("[CRYMOVIE:TAnimSplineTrack<Vec2>::Serialize]Ill formed legacy track:missing time information.");
+                //CryLog("[CRYMOVIE:TAnimSplineTrack<Vec2>::Serialize]Ill formed legacy track:missing time information.");
+                AZLOG_INFO("[CRYMOVIE:TAnimSplineTrack<Vec2>::Serialize]Ill formed legacy track:missing time information.");
                 return false;
             }
             if (!keyNode->getAttr("value", key.value))
             {
-                CryLog("[CRYMOVIE:TAnimSplineTrack<Vec2>::Serialize]Ill formed legacy track:missing value information.");
+                //CryLog("[CRYMOVIE:TAnimSplineTrack<Vec2>::Serialize]Ill formed legacy track:missing value information.");
+                AZLOG_INFO("[CRYMOVIE:TAnimSplineTrack<Vec2>::Serialize]Ill formed legacy track:missing value information.");
                 return false;
             }
             //assert(key.time == key.value.x);
@@ -208,13 +211,15 @@ inline bool TAnimSplineTrack<Vec2>::Serialize(XmlNodeRef& xmlNode, bool bLoading
             // In-/Out-tangent
             if (!keyNode->getAttr("ds", m_spline->key(i).ds))
             {
-                CryLog("[CRYMOVIE:TAnimSplineTrack<Vec2>::Serialize]Ill formed legacy track:missing ds spline information.");
+                //CryLog("[CRYMOVIE:TAnimSplineTrack<Vec2>::Serialize]Ill formed legacy track:missing ds spline information.");
+                AZLOG_INFO("[CRYMOVIE:TAnimSplineTrack<Vec2>::Serialize]Ill formed legacy track:missing ds spline information.");
                 return false;
             }
 
             if (!keyNode->getAttr("dd", m_spline->key(i).dd))
             {
-                CryLog("[CRYMOVIE:TAnimSplineTrack<Vec2>::Serialize]Ill formed legacy track:dd spline information.");
+                //CryLog("[CRYMOVIE:TAnimSplineTrack<Vec2>::Serialize]Ill formed legacy track:dd spline information.");
+                AZLOG_INFO("[CRYMOVIE:TAnimSplineTrack<Vec2>::Serialize]Ill formed legacy track:dd spline information.");
                 return false;
             }
             // now that tangents are loaded, compute the relative angle and size for later unified Tangent manipulations

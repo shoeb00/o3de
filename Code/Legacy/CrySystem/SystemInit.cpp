@@ -35,6 +35,7 @@
 #include <AzFramework/Input/Devices/Mouse/InputDeviceMouse.h>
 #include <AzFramework/IO/LocalFileIO.h>
 
+#include <AzCore/Console/ILogger.h>
 #include <AzCore/IO/SystemFile.h> // for AZ_MAX_PATH_LEN
 #include <AzCore/IO/Streamer/Streamer.h>
 #include <AzCore/IO/Streamer/StreamerComponent.h>
@@ -176,7 +177,8 @@ static void CmdCrashTest(IConsoleCmdArgs* pArgs)
             memset(&a, 0, sizeof(a));
             [[maybe_unused]] float* b = &a;
             [[maybe_unused]] float c = 3;
-            CryLog("%f", (c / *b));
+            //CryLog("%f", (c / *b));
+            AZLOG_INFO("%f", (c / *b));
         }
         break;
         case 3:
@@ -1375,7 +1377,8 @@ void CSystem::CreateAudioVars()
 /////////////////////////////////////////////////////////////////////
 void CSystem::AddCVarGroupDirectory(const AZStd::string& sPath)
 {
-    CryLog("creating CVarGroups from directory '%s' ...", sPath.c_str());
+    //CryLog("creating CVarGroups from directory '%s' ...", sPath.c_str());
+    AZLOG_INFO("creating CVarGroups from directory '%s' ...", sPath.c_str());
     INDENT_LOG_DURING_SCOPE();
 
     AZ::IO::ArchiveFileIterator handle = gEnv->pCryPak->FindFirst(ConcatPath(sPath.c_str(), "*.cfg").c_str());

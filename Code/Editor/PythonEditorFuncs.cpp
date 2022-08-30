@@ -314,7 +314,8 @@ namespace
     {
         if (strcmp(pMessage, "") != 0)
         {
-            CryLogAlways("%s", pMessage);
+            //CryLogAlways("%s", pMessage);
+            AZLOG_INFO("%s", pMessage);
         }
     }
 

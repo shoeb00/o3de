@@ -11,6 +11,8 @@
 
 #include "AnimationContext.h"
 
+#include <AzCore/Console/ILogger.h>
+
 // CryCommon
 #include <CryCommon/Maestro/Bus/EditorSequenceBus.h>
 
@@ -614,7 +616,7 @@ void CAnimationContext::GoToFrameCmd(IConsoleCmdArgs* pArgs)
 {
     if (pArgs->GetArgCount() < 2)
     {
-        gEnv->pLog->LogError("GoToFrame: You must provide a 'frame time' to go to");
+        AZLOG_ERROR("GoToFrame: You must provide a 'frame time' to go to");
         return;
     }
 
@@ -622,14 +624,14 @@ void CAnimationContext::GoToFrameCmd(IConsoleCmdArgs* pArgs)
     CTrackViewSequence* pSeq = GetIEditor()->GetAnimation()->GetSequence();
     if (!pSeq)
     {
-        gEnv->pLog->LogError("GoToFrame: No active animation sequence");
+        AZLOG_ERROR("GoToFrame: No active animation sequence");
         return;
     }
 
     float targetFrame = (float)atof(pArgs->GetArg(1));
     if (pSeq->GetTimeRange().start > targetFrame || targetFrame > pSeq->GetTimeRange().end)
     {
-        gEnv->pLog->LogError("GoToFrame: requested time %f is outside the range of sequence %s (%f, %f)", targetFrame, pSeq->GetName().c_str(), pSeq->GetTimeRange().start, pSeq->GetTimeRange().end);
+        AZLOG_ERROR("GoToFrame: requested time %f is outside the range of sequence %s (%f, %f)", targetFrame, pSeq->GetName().c_str(), pSeq->GetTimeRange().start, pSeq->GetTimeRange().end);
         return;
     }
     GetIEditor()->GetAnimation()->m_currTime = targetFrame;

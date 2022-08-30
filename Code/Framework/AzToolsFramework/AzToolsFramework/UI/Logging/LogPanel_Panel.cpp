@@ -527,7 +527,7 @@ namespace AzToolsFramework
             }
 
             // apply filters.
-            bool showErrors = ((m_tabSettings.m_filterFlags & (0x01 << TabSettings::FILTER_ERROR)) != 0);
+            bool showErrors = ((m_tabSettings.m_filterFlags & TabSettings::FilterType::FILTER_ERROR) != TabSettings::FilterType::FILTER_NONE);
             if (!showErrors) // do not display errors
             {
                 if (sourceLine->GetLogType() == Logging::LogLine::TYPE_ERROR)
@@ -536,7 +536,7 @@ namespace AzToolsFramework
                 }
             }
 
-            bool showWarnings = ((m_tabSettings.m_filterFlags & (0x01 << TabSettings::FILTER_WARNING)) != 0);
+            bool showWarnings = ((m_tabSettings.m_filterFlags & TabSettings::FilterType::FILTER_WARNING) != TabSettings::FilterType::FILTER_NONE);
             if (!showWarnings)
             {
                 if (sourceLine->GetLogType() == Logging::LogLine::TYPE_WARNING)
@@ -545,7 +545,7 @@ namespace AzToolsFramework
                 }
             }
 
-            bool showMessages = ((m_tabSettings.m_filterFlags & (0x01 << TabSettings::FILTER_NORMAL)) != 0);
+            bool showMessages = ((m_tabSettings.m_filterFlags & TabSettings::FilterType::FILTER_NORMAL) != TabSettings::FilterType::FILTER_NONE);
             if (!showMessages)
             {
                 if (sourceLine->GetLogType() == Logging::LogLine::TYPE_MESSAGE)
@@ -559,7 +559,7 @@ namespace AzToolsFramework
                 }
             }
 
-            bool showDebug = ((m_tabSettings.m_filterFlags & (0x01 << TabSettings::FILTER_DEBUG)) != 0);
+            bool showDebug = ((m_tabSettings.m_filterFlags & TabSettings::FilterType::FILTER_DEBUG) != TabSettings::FilterType::FILTER_NONE);
             if (!showDebug)
             {
                 if (sourceLine->GetLogType() == Logging::LogLine::TYPE_DEBUG)
@@ -866,7 +866,28 @@ namespace AzToolsFramework
             return QStyledItemDelegate::editorEvent(event, model, option, index);
         }
 
+        LogPanel::TabSettings::TabSettings(const AZStd::string& in_tabName, const AZStd::string& in_window, const AZStd::string& in_filter)
+            : m_window(in_window)
+            , m_tabName(in_tabName)
+            , m_textFilter(in_filter)
+            , m_filterFlags(FilterType::FILTER_NORMAL | FilterType::FILTER_WARNING | FilterType::FILTER_ERROR | FilterType::FILTER_DEBUG)
+        {
+        }
+
+        AzToolsFramework::LogPanel::TabSettings::TabSettings(const AZStd::string& in_tabName, const AZStd::string& in_window, const AZStd::string& in_filter, bool in_normal, bool in_warning, bool in_error, bool in_debug)
+            : m_window(in_window)
+            , m_tabName(in_tabName)
+            , m_textFilter(in_filter)
+        {
+            m_filterFlags |= in_normal ? FilterType::FILTER_NORMAL : FilterType::FILTER_NONE;
+            m_filterFlags |= in_warning ? FilterType::FILTER_WARNING : FilterType::FILTER_NONE;
+            m_filterFlags |= in_error ? FilterType::FILTER_ERROR : FilterType::FILTER_NONE;
+            m_filterFlags |= in_debug ? FilterType::FILTER_DEBUG : FilterType::FILTER_NONE;
+        }
+
+
     } // namespace LogPanel
 } // namespace AzToolsFramework
 
 #include "UI/Logging/moc_LogPanel_Panel.cpp"
+

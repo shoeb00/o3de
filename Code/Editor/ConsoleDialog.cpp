@@ -17,7 +17,7 @@
 // Editor
 #include "Controls/ConsoleSCB.h"    // For CConsoleSCB
 #include "LyViewPaneNames.h"        // for LyViewPane::
-
+#include <AzCore/Console/ILogger.h>
 
 CConsoleDialog::CConsoleDialog(QWidget* parent)
     : QDialog(parent)
@@ -34,10 +34,7 @@ CConsoleDialog::CConsoleDialog(QWidget* parent)
 
 void CConsoleDialog::SetInfoText(const char* text)
 {
-    if (gEnv && gEnv->pLog)                             // before log system was initialized
-    {
-        CryLogAlways("%s", text);
-    }
+    AZLOG_INFO("%s", text);
 }
 
 void CConsoleDialog::closeEvent(QCloseEvent* ev)

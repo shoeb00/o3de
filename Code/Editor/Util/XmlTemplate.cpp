@@ -13,6 +13,8 @@
 
 #include "XmlTemplate.h"
 
+#include <AzCore/Console/ILogger.h>
+
 //////////////////////////////////////////////////////////////////////////
 // CXmlTemplate implementation
 //////////////////////////////////////////////////////////////////////////
@@ -24,7 +26,7 @@ void CXmlTemplate::GetValues(XmlNodeRef& node, const XmlNodeRef& fromNode)
 
     if (!node)
     {
-        gEnv->pLog->LogError("CXmlTemplate::GetValues invalid node. Possible problems with Editor folder.");
+        AZLOG_ERROR("CXmlTemplate::GetValues invalid node. Possible problems with Editor folder.");
         return;
     }
 
@@ -63,7 +65,7 @@ void CXmlTemplate::SetValues(const XmlNodeRef& node, XmlNodeRef& toNode)
     assert(node);
     if (!node)
     {
-        gEnv->pLog->LogError("CXmlTemplate::SetValues invalid node. Possible problems with Editor folder.");
+        AZLOG_ERROR("CXmlTemplate::SetValues invalid node. Possible problems with Editor folder.");
         return;
     }
 

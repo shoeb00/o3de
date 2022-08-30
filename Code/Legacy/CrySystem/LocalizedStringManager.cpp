@@ -24,6 +24,7 @@
 #include <locale.h>
 #include <time.h>
 
+#include <AzCore/Console/ILogger.h>
 #include <AzCore/std/string/conversions.h>
 #include <AzFramework/StringFunc/StringFunc.h>
 #include <AzCore/std/string/conversions.h>
@@ -193,9 +194,11 @@ static void TestFormatMessage ([[maybe_unused]] IConsoleCmdArgs* pArgs)
     AZStd::string fmt2 ("abc %[action:abc] %2 def % gh%1i %1");
     AZStd::string out1, out2;
     LocalizationManagerRequestBus::Broadcast(&LocalizationManagerRequestBus::Events::FormatStringMessage, out1, fmt1, "first", "second", "third", nullptr);
-    CryLogAlways("%s", out1.c_str());
+    //CryLogAlways("%s", out1.c_str());
+    AZLOG_INFO("%s", out1.c_str());
     LocalizationManagerRequestBus::Broadcast(&LocalizationManagerRequestBus::Events::FormatStringMessage, out2, fmt2, "second", nullptr, nullptr, nullptr);
-    CryLogAlways("%s", out2.c_str());
+    //CryLogAlways("%s", out2.c_str());
+    AZLOG_INFO("%s", out2.c_str());
 }
 #endif //#if !defined(_RELEASE)
 
@@ -403,7 +406,8 @@ bool CLocalizedStringsManager::SetLanguage(const char* sLanguage)
 {
     if (m_cvarLocalizationDebug >= 2)
     {
-        CryLog("<Localization> Set language to %s", sLanguage);
+        //CryLog("<Localization> Set language to %s", sLanguage);
+        AZLOG_INFO("<Localization> Set language to %s", sLanguage);
     }
 
     // Check if already language loaded.
@@ -421,7 +425,8 @@ bool CLocalizedStringsManager::SetLanguage(const char* sLanguage)
 
     if (m_cvarLocalizationDebug >= 2)
     {
-        CryLog("<Localization> Insert new language to %s", sLanguage);
+        //CryLog("<Localization> Insert new language to %s", sLanguage);
+        AZLOG_INFO("<Localization> Insert new language to %s", sLanguage);
     }
 
     pLanguage->sLanguage = sLanguage;
@@ -603,7 +608,8 @@ void CLocalizedStringsManager::OnSystemEvent(
         {
             if (m_cvarLocalizationDebug >= 2)
             {
-                CryLog("<Localization> Loading Requested Tags");
+                //CryLog("<Localization> Loading Requested Tags");
+                AZLOG_INFO("<Localization> Loading Requested Tags");
             }
 
             for (TStringVec::iterator it = m_tagLoadRequests.begin(); it != m_tagLoadRequests.end(); ++it)
@@ -636,7 +642,8 @@ bool CLocalizedStringsManager::InitLocalizationData(
 
     if (!root)
     {
-        CryLog("Loading Localization File %s failed!", sFileName);
+        //CryLog("Loading Localization File %s failed!", sFileName);
+        AZLOG_INFO("Loading Localization File %s failed!", sFileName);
         return false;
     }
 
@@ -681,13 +688,15 @@ bool CLocalizedStringsManager::RequestLoadLocalizationDataByTag(const char* sTag
     TTagFileNames::iterator it = m_tagFileNames.find(sTag);
     if (it == m_tagFileNames.end())
     {
-        CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] RequestLoadLocalizationDataByTag - Localization tag '%s' not found", sTag);
+        //CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] RequestLoadLocalizationDataByTag - Localization tag '%s' not found", sTag);
+        AZLOG_WARN("[LocError] RequestLoadLocalizationDataByTag - Localization tag '%s' not found", sTag);
         return false;
     }
 
     if (m_cvarLocalizationDebug >= 2)
     {
-        CryLog("<Localization> RequestLoadLocalizationDataByTag %s", sTag);
+        //CryLog("<Localization> RequestLoadLocalizationDataByTag %s", sTag);
+        AZLOG_INFO("<Localization> RequestLoadLocalizationDataByTag %s", sTag);
     }
 
     m_tagLoadRequests.push_back(sTag);
@@ -702,13 +711,15 @@ bool CLocalizedStringsManager::LoadLocalizationDataByTag(
     TTagFileNames::iterator it = m_tagFileNames.find(sTag);
     if (it == m_tagFileNames.end())
     {
-        CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] LoadLocalizationDataByTag - Localization tag '%s' not found", sTag);
+        //CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] LoadLocalizationDataByTag - Localization tag '%s' not found", sTag);
+        AZLOG_WARN("[LocError] LoadLocalizationDataByTag - Localization tag '%s' not found", sTag);
         return false;
     }
 
     if (it->second.loaded)
     {
-        CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] LoadLocalizationDataByTag - Already loaded tag '%s'", sTag);
+        //CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] LoadLocalizationDataByTag - Already loaded tag '%s'", sTag);
+        AZLOG_WARN("[LocError] LoadLocalizationDataByTag - Already loaded tag '%s'", sTag);
         return true;
     }
 
@@ -729,7 +740,8 @@ bool CLocalizedStringsManager::LoadLocalizationDataByTag(
 
     if (m_cvarLocalizationDebug >= 2)
     {
-        CryLog("<Localization> LoadLocalizationDataByTag %s with result %d", sTag, bResult);
+        //CryLog("<Localization> LoadLocalizationDataByTag %s with result %d", sTag, bResult);
+        AZLOG_INFO("<Localization> LoadLocalizationDataByTag %s with result %d", sTag, bResult);
     }
 
     it->second.loaded = true;
@@ -747,13 +759,15 @@ bool CLocalizedStringsManager::ReleaseLocalizationDataByTag(
     TTagFileNames::iterator it = m_tagFileNames.find(sTag);
     if (it == m_tagFileNames.end())
     {
-        CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] ReleaseLocalizationDataByTag - Localization tag '%s' not found", sTag);
+        //CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] ReleaseLocalizationDataByTag - Localization tag '%s' not found", sTag);
+        AZLOG_WARN("[LocError] ReleaseLocalizationDataByTag - Localization tag '%s' not found", sTag);
         return false;
     }
 
     if (it->second.loaded == false)
     {
-        CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] ReleaseLocalizationDataByTag - tag '%s' not loaded", sTag);
+        //CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] ReleaseLocalizationDataByTag - tag '%s' not loaded", sTag);
+        AZLOG_WARN("[LocError] ReleaseLocalizationDataByTag - tag '%s' not loaded", sTag);
         return false;
     }
 
@@ -819,7 +833,8 @@ bool CLocalizedStringsManager::ReleaseLocalizationDataByTag(
                             {
                                 if (m_cvarLocalizationDebug >= 2)
                                 {
-                                    CryLog("<Localization> Releasing coder %u as it no longer has associated strings", entry->huffmanTreeIndex);
+                                    //CryLog("<Localization> Releasing coder %u as it no longer has associated strings", entry->huffmanTreeIndex);
+                                    AZLOG_INFO("<Localization> Releasing coder %u as it no longer has associated strings", entry->huffmanTreeIndex);
                                 }
                                 //This coding table no longer needed, it has no more associated strings
                                 SAFE_DELETE(m_pLanguage->m_vEncoders[entry->huffmanTreeIndex]);
@@ -844,7 +859,8 @@ bool CLocalizedStringsManager::ReleaseLocalizationDataByTag(
 
     if (m_cvarLocalizationDebug >= 2)
     {
-        CryLog("<Localization> ReleaseLocalizationDataByTag %s", sTag);
+        //CryLog("<Localization> ReleaseLocalizationDataByTag %s", sTag);
+        AZLOG_INFO("<Localization> ReleaseLocalizationDataByTag %s", sTag);
     }
 
     it->second.loaded = false;
@@ -924,7 +940,8 @@ bool CLocalizedStringsManager::DoLoadExcelXmlSpreadsheet(const char* sFileName, 
     IXmlTableReader* const pXmlTableReader = m_pSystem->GetXmlUtils()->CreateXmlTableReader();
     if (!pXmlTableReader)
     {
-        CryLog("Loading Localization File %s failed (XML system failure)!", sFileName);
+        //CryLog("Loading Localization File %s failed (XML system failure)!", sFileName);
+        AZLOG_INFO("Loading Localization File %s failed (XML system failure)!", sFileName);
         return false;
     }
 
@@ -937,7 +954,8 @@ bool CLocalizedStringsManager::DoLoadExcelXmlSpreadsheet(const char* sFileName, 
         root = m_pSystem->LoadXmlFromFile(sPath.c_str());
         if (!root)
         {
-            CryLog("Loading Localization File %s failed!", sPath.c_str());
+            //CryLog("Loading Localization File %s failed!", sPath.c_str());
+            AZLOG_INFO("Loading Localization File %s failed!", sPath.c_str());
             pXmlTableReader->Release();
             return false;
         }
@@ -948,7 +966,8 @@ bool CLocalizedStringsManager::DoLoadExcelXmlSpreadsheet(const char* sFileName, 
     //sReExport += ".re";
     //root->saveToFile(sReExport.c_str());
 
-    CryLog("Loading Localization File %s", sFileName);
+    //CryLog("Loading Localization File %s", sFileName);
+    AZLOG_INFO("Loading Localization File %s", sFileName);
     INDENT_LOG_DURING_SCOPE();
 
     //Create a huffman coding table for these strings - if they're going to be encoded or compressed
@@ -981,7 +1000,8 @@ bool CLocalizedStringsManager::DoLoadExcelXmlSpreadsheet(const char* sFileName, 
     {
         if (!pXmlTableReader->Begin(root))
         {
-            CryLog("Loading Localization File %s failed! The file is in an unsupported format.", sPath.c_str());
+            //CryLog("Loading Localization File %s failed! The file is in an unsupported format.", sPath.c_str());
+            AZLOG_INFO("Loading Localization File %s failed! The file is in an unsupported format.", sPath.c_str());
             pXmlTableReader->Release();
             return false;
         }
@@ -1276,7 +1296,8 @@ bool CLocalizedStringsManager::DoLoadExcelXmlSpreadsheet(const char* sFileName, 
             if (m_cvarLocalizationDebug && !sSoundEvent.empty() && bUseSubtitle)
             {
                 sTmp.assign(sKeyString.ptr, sKeyString.count);
-                CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] Key '%s' in file <%s> has no translated text", sTmp.c_str(), sFileName);
+                //CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] Key '%s' in file <%s> has no translated text", sTmp.c_str(), sFileName);
+                AZLOG_WARN("[LocError] Key '%s' in file <%s> has no translated text", sTmp.c_str(), sFileName);
             }
 
             // use translated actor line entry if available before falling back to original entry
@@ -1296,7 +1317,8 @@ bool CLocalizedStringsManager::DoLoadExcelXmlSpreadsheet(const char* sFileName, 
             if (m_cvarLocalizationDebug && !sSoundEvent.empty())
             {
                 sTmp.assign(sKeyString.ptr, sKeyString.count);
-                CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] Key '%s' in file <%s> has no translated actor line", sTmp.c_str(), sFileName);
+                //CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] Key '%s' in file <%s> has no translated actor line", sTmp.c_str(), sFileName);
+                AZLOG_WARN("[LocError] Key '%s' in file <%s> has no translated actor line", sTmp.c_str(), sFileName);
             }
 
             // use translated text entry if available before falling back to original entry
@@ -1315,7 +1337,8 @@ bool CLocalizedStringsManager::DoLoadExcelXmlSpreadsheet(const char* sFileName, 
             if (m_cvarLocalizationDebug)
             {
                 sTmp.assign(sKeyString.ptr, sKeyString.count);
-                CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] Key '%s' in file <%s> has no translated character name", sTmp.c_str(), sFileName);
+                //CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] Key '%s' in file <%s> has no translated character name", sTmp.c_str(), sFileName);
+                AZLOG_WARN("[LocError] Key '%s' in file <%s> has no translated character name", sTmp.c_str(), sFileName);
             }
 
             sTranslatedCharacterName = sCharacterName;
@@ -1352,13 +1375,15 @@ bool CLocalizedStringsManager::DoLoadExcelXmlSpreadsheet(const char* sFileName, 
         keyCRC = AZ::Crc32(szLowerCaseKey);
         if (m_cvarLocalizationDebug >= 3)
         {
-            CryLogAlways("<Localization dupe/clash detection> CRC32: 0x%8X, Key: %s", keyCRC, szLowerCaseKey);
+            //CryLogAlways("<Localization dupe/clash detection> CRC32: 0x%8X, Key: %s", keyCRC, szLowerCaseKey);
+            AZLOG_INFO("<Localization dupe/clash detection> CRC32: 0x%8X, Key: %s", keyCRC, szLowerCaseKey);
         }
 
         if (m_pLanguage->m_keysMap.find(keyCRC) != m_pLanguage->m_keysMap.end())
         {
             sTmp.assign(sKeyString.ptr, sKeyString.count);
-            CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] Localized String '%s' Already Loaded for Language %s OR there is a CRC hash clash", sTmp.c_str(), m_pLanguage->sLanguage.c_str());
+            //CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "[LocError] Localized String '%s' Already Loaded for Language %s OR there is a CRC hash clash", sTmp.c_str(), m_pLanguage->sLanguage.c_str());
+            AZLOG_WARN("[LocError] Localized String '%s' Already Loaded for Language %s OR there is a CRC hash clash", sTmp.c_str(), m_pLanguage->sLanguage.c_str());
             continue;
         }
 
@@ -1638,7 +1663,8 @@ bool CLocalizedStringsManager::DoLoadAGSXmlDocument(const char* sFileName, uint8
         keyCRC = AZ::Crc32(lowerKey);
         if (m_cvarLocalizationDebug >= 3)
         {
-            CryLogAlways("<Localization dupe/clash detection> CRC32: 0%8X, Key: %s", keyCRC, lowerKey.c_str());
+            //CryLogAlways("<Localization dupe/clash detection> CRC32: 0%8X, Key: %s", keyCRC, lowerKey.c_str());
+            AZLOG_INFO("<Localization dupe/clash detection> CRC32: 0%8X, Key: %s", keyCRC, lowerKey.c_str());
         }
         if (m_pLanguage->m_keysMap.find(keyCRC) != m_pLanguage->m_keysMap.end())
         {
@@ -1743,7 +1769,8 @@ void CLocalizedStringsManager::AddLocalizedString(SLanguage* pLanguage, SLocaliz
 
     if (m_cvarLocalizationDebug >= 2)
     {
-        CryLog("<Localization> Add new string <%u> with ID %d to <%s>", keyCRC32, nId, pLanguage->sLanguage.c_str());
+        //CryLog("<Localization> Add new string <%u> with ID %d to <%s>", keyCRC32, nId, pLanguage->sLanguage.c_str());
+        AZLOG_INFO("<Localization> Add new string <%u> with ID %d to <%s>", keyCRC32, nId, pLanguage->sLanguage.c_str());
     }
 }
 
@@ -1765,7 +1792,8 @@ bool CLocalizedStringsManager::LocalizeStringInternal(const char* pStr, size_t l
     assert (m_pLanguage);
     if (m_pLanguage == nullptr)
     {
-        CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "LocalizeString: No language set.");
+        //CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "LocalizeString: No language set.");
+        AZLOG_WARN("LocalizeString: No language set.");
         outLocalizedString.assign(pStr, pStr + len);
         return false;
     }
@@ -1948,7 +1976,8 @@ void CLocalizedStringsManager::LocalizedStringsManagerWarning(const char* label,
 {
     if (!m_warnedAboutLabels[label])
     {
-        CryWarning (VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "Failed to localize label '%s' - %s", label, message);
+        //CryWarning (VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "Failed to localize label '%s' - %s", label, message);
+        AZLOG_WARN("Failed to localize label '%s' - %s", label, message);
         m_warnedAboutLabels[label] = true;
         m_haveWarnedAboutAtLeastOneLabel = true;
     }
@@ -1959,12 +1988,14 @@ void CLocalizedStringsManager::ListAndClearProblemLabels()
 {
     if (m_haveWarnedAboutAtLeastOneLabel)
     {
-        CryLog ("These labels caused localization problems:");
+        //CryLog ("These labels caused localization problems:");
+        AZLOG_INFO("These labels caused localization problems:");
         INDENT_LOG_DURING_SCOPE();
 
         for (std::map<AZStd::string, bool>::iterator iter = m_warnedAboutLabels.begin(); iter != m_warnedAboutLabels.end(); iter++)
         {
-            CryLog ("%s", iter->first.c_str());
+            //CryLog ("%s", iter->first.c_str());
+            AZLOG_INFO("%s", iter->first.c_str());
         }
 
         m_warnedAboutLabels.clear();
@@ -2347,11 +2378,13 @@ void InternalFormatStringMessage(AZStd::string& outString, const AZStd::string& 
                         AZ::StringFunc::Replace(tmp, tokens1, tokens2);
                         if constexpr (sizeof(*tmp.c_str()) == sizeof(char))
                         {
-                            CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "Parameter for argument %d is missing. [%s]", nArg + 1, (const char*)tmp.c_str());
+                            //CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "Parameter for argument %d is missing. [%s]", nArg + 1, (const char*)tmp.c_str());
+                            AZLOG_WARN("Parameter for argument %d is missing. [%s]", nArg + 1, (const char*)tmp.c_str());
                         }
                         else
                         {
-                            CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "Parameter for argument %d is missing. [%S]", nArg + 1, (const wchar_t*)tmp.c_str());
+                            //CryWarning(VALIDATOR_MODULE_SYSTEM, VALIDATOR_WARNING, "Parameter for argument %d is missing. [%S]", nArg + 1, (const wchar_t*)tmp.c_str());
+                            AZLOG_WARN("Parameter for argument %d is missing. [%S]", nArg + 1, (const wchar_t*)tmp.c_str());
                         }
                         curPos = foundPos + 1;
                     }

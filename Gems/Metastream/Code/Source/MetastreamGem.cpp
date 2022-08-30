@@ -9,6 +9,7 @@
 #include <sstream>
 #include <string.h>
 
+#include <AzCore/Console/ILogger.h>
 #include <AzCore/RTTI/BehaviorContext.h>
 #include <AzCore/Serialization/SerializeContext.h>
 #include <Metastream_Traits_Platform.h>
@@ -324,7 +325,8 @@ namespace Metastream
             // Initialise and start the HTTP server
             m_server = std::unique_ptr<BaseHttpServer>(new CivetHttpServer(m_cache.get()));
             AZStd::string serverOptions = m_serverOptionsCVar->GetString();
-            CryLogAlways("Initializing Metastream: Options=\"%s\"", serverOptions.c_str());
+            //CryLogAlways("Initializing Metastream: Options=\"%s\"", serverOptions.c_str());
+            AZLOG_INFO("Initializing Metastream: Options=\"%s\"", serverOptions.c_str());
 
             bool result = m_server->Start(serverOptions.c_str());
             if (result)

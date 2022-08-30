@@ -24,6 +24,7 @@
 #include <AzFramework/API/ApplicationAPI.h>
 #include <AzFramework/API/ApplicationAPI_Platform.h>
 #include <AzFramework/Input/Devices/Keyboard/InputDeviceKeyboard.h>
+#include <AzCore/Console/ILogger.h>
 #include <AzCore/Debug/Profiler.h>
 #include <AzCore/Debug/Trace.h>
 #include <AzCore/Debug/IEventLogger.h>
@@ -309,7 +310,8 @@ void CSystem::SetDevMode(bool bEnable)
 ///////////////////////////////////////////////////
 void CSystem::ShutDown()
 {
-    CryLogAlways("System Shutdown");
+    //CryLogAlways("System Shutdown");
+    AZLOG_INFO("System Shutdown");
 
     // don't broadcast OnCrySystemShutdown unless
     // we'd previously broadcast OnCrySystemInitialized
@@ -413,7 +415,8 @@ void CSystem::ShutDown()
 /////////////////////////////////////////////////////////////////////////////////
 void CSystem::Quit()
 {
-    CryLogAlways("CSystem::Quit invoked from thread %" PRI_THREADID " (main is %" PRI_THREADID ")", GetCurrentThreadId(), gEnv->mMainThreadId);
+    //CryLogAlways("CSystem::Quit invoked from thread %" PRI_THREADID " (main is %" PRI_THREADID ")", GetCurrentThreadId(), gEnv->mMainThreadId);
+    AZLOG_INFO("CSystem::Quit invoked from thread %" PRI_THREADID " (main is %" PRI_THREADID ")", GetCurrentThreadId(), gEnv->mMainThreadId);
 
     AzFramework::ApplicationRequests::Bus::Broadcast(&AzFramework::ApplicationRequests::ExitMainLoop);
 
@@ -1240,7 +1243,11 @@ void CSystem::SetSystemGlobalState(const ESystemGlobalState systemGlobalState)
     {
         const AZ::TimeMs endTime = AZ::GetRealElapsedTimeMs();
         [[maybe_unused]] const double numSeconds = AZ::TimeMsToSecondsDouble(endTime - s_startTime);
-        CryLog("SetGlobalState %d->%d '%s'->'%s' %3.1f seconds",
+        //CryLog("SetGlobalState %d->%d '%s'->'%s' %3.1f seconds",
+        //    m_systemGlobalState, systemGlobalState,
+        //    CSystem::GetSystemGlobalStateName(m_systemGlobalState), CSystem::GetSystemGlobalStateName(systemGlobalState),
+        //    numSeconds);
+        AZLOG_INFO("SetGlobalState %d->%d '%s'->'%s' %3.1f seconds",
             m_systemGlobalState, systemGlobalState,
             CSystem::GetSystemGlobalStateName(m_systemGlobalState), CSystem::GetSystemGlobalStateName(systemGlobalState),
             numSeconds);

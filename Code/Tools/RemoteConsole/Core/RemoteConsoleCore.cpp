@@ -5,7 +5,9 @@
  * SPDX-License-Identifier: Apache-2.0 OR MIT
  *
  */
+
 #include <AzCore/PlatformDef.h>
+#include <AzCore/Console/ILogger.h>
 #include <AzCore/Socket/AzSocket.h>
 
 #include <AzFramework/StringFunc/StringFunc.h>
@@ -39,13 +41,15 @@ bool RCON_IsRemoteAllowedToConnect(const AZ::AzSock::AzSocketAddress& connectee)
 {
     if ((!gEnv) || (!gEnv->pConsole))
     {
-        CryLog("Cannot allow incoming connection for remote console, because we do not yet have a console or an environment.");
+        //CryLog("Cannot allow incoming connection for remote console, because we do not yet have a console or an environment.");
+        AZLOG_INFO("Cannot allow incoming connection for remote console, because we do not yet have a console or an environment.");
         return false;
     }
     ICVar* remoteConsoleAllowedHostList = gEnv->pConsole->GetCVar("log_RemoteConsoleAllowedAddresses");
     if (!remoteConsoleAllowedHostList)
     {
-        CryLog("Cannot allow incoming connection for remote console, because there is no registered log_RemoteConsoleAllowedAddresses console variable.");
+        //CryLog("Cannot allow incoming connection for remote console, because there is no registered log_RemoteConsoleAllowedAddresses console variable.");
+        AZLOG_INFO("Cannot allow incoming connection for remote console, because there is no registered log_RemoteConsoleAllowedAddresses console variable.");
         return false;
     }
 
@@ -182,14 +186,16 @@ void SRemoteServer::Run()
 
     if (AZ::AzSock::SocketErrorOccured(AZ::AzSock::Startup()))
     {
-        gEnv->pLog->LogError("[RemoteKeyboard] Failed to load Winsock!\n");
+        //gEnv->pLog->LogError("[RemoteKeyboard] Failed to load Winsock!\n");
+        AZLOG_ERROR("[RemoteKeyboard] Failed to load Winsock!\n");
         return;
     }
 
     m_socket = AZ::AzSock::Socket();
     if (!AZ::AzSock::IsAzSocketValid(m_socket))
     {
-        CryLog("Remote console FAILED. socket() => SOCKET_ERROR");
+        //CryLog("Remote console FAILED. socket() => SOCKET_ERROR");
+        AZLOG_INFO("Remote console FAILED. socket() => SOCKET_ERROR");
         return;
     }
 
@@ -224,7 +230,8 @@ void SRemoteServer::Run()
 
     if ( !bindOk )
     {
-        CryLog("Failed to bind Remote Console to ports %hu to %hu", remotePort, static_cast<AZ::u16>(remotePort + kMaxBindPorts - 1) );
+        //CryLog("Failed to bind Remote Console to ports %hu to %hu", remotePort, static_cast<AZ::u16>(remotePort + kMaxBindPorts - 1) );
+        AZLOG_INFO("Failed to bind Remote Console to ports %hu to %hu", remotePort, static_cast<AZ::u16>(remotePort + kMaxBindPorts - 1) );
         return;
     }
 
@@ -234,11 +241,13 @@ void SRemoteServer::Run()
 
     if (!AZ::AzSock::SocketErrorOccured(result))
     {
-        CryLog("Remote console listening on: %d\n", sockName.GetAddrPort());
+        //CryLog("Remote console listening on: %d\n", sockName.GetAddrPort());
+        AZLOG_INFO("Remote console listening on: %d\n", sockName.GetAddrPort());
     }
     else
     {
-        CryLog("Remote console FAILED to listen on: %d\n", sockName.GetAddrPort());
+        //CryLog("Remote console FAILED to listen on: %d\n", sockName.GetAddrPort());
+        AZLOG_INFO("Remote console FAILED to listen on: %d\n", sockName.GetAddrPort());
     }
 
     while (m_bAcceptClients)
@@ -267,7 +276,8 @@ void SRemoteServer::Run()
         pClient->StartClient(sClient);
     }
     AZ::AzSock::CloseSocket(m_socket);
-    CryLog("Remote console terminating.\n");
+    //CryLog("Remote console terminating.\n");
+    AZLOG_INFO("Remote console terminating.\n");
     //AZ::AzSock::Shutdown();
 }
 

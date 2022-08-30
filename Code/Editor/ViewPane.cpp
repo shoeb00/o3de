@@ -23,6 +23,7 @@
 #include <QToolBar>
 
 // AzCore
+#include <AzCore/Console/ILogger.h>
 #include <AzCore/RTTI/BehaviorContext.h>
 #include <AzFramework/StringFunc/StringFunc.h>
 #include <AzQtComponents/Components/Style.h>
@@ -492,7 +493,8 @@ void CLayoutViewPane::OnMenuLayoutConfig()
     if (GetIEditor()->IsInGameMode())
     {
         // you may not change your viewports while game mode is running.
-        CryLog("You may not change viewport configuration while in game mode.");
+        //CryLog("You may not change viewport configuration while in game mode.");
+        AZLOG_INFO("You may not change viewport configuration while in game mode.");
         return;
     }
 
@@ -514,7 +516,8 @@ void CLayoutViewPane::OnMenuViewSelected(const QString& paneName)
 {
     if (GetIEditor()->IsInGameMode())
     {
-        CryLog("You may not change viewport configuration while in game mode.");
+        //CryLog("You may not change viewport configuration while in game mode.");
+        AZLOG_INFO("You may not change viewport configuration while in game mode.");
         // you may not change your viewports while game mode is running.
         return;
     }

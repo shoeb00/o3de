@@ -1423,62 +1423,9 @@ namespace Detail
 
 #ifdef EXCLUDE_NORMAL_LOG               // setting this removes a lot of logging to reduced code size (useful for consoles)
 
-#define CryLog(...) ((void)0)
-#define CryComment(...) ((void)0)
-#define CryLogAlways(...) ((void)0)
 #define CryOutputToCallback(...) ((void)0)
 
 #else // EXCLUDE_NORMAL_LOG
-
-// Summary:
-//   Simple logs of data with low verbosity.
-void CryLog(const char*, ...) PRINTF_PARAMS(1, 2);
-inline void CryLog(const char* format, ...)
-{
-    // Fran: we need these guards for the testing framework to work
-    if (gEnv && gEnv->pSystem && gEnv->pLog)
-    {
-        va_list args;
-        va_start(args, format);
-        gEnv->pLog->LogV(ILog::eMessage, format, args);
-        va_end(args);
-    }
-}
-// Notes:
-//   Very rarely used log comment.
-void CryComment(const char*, ...) PRINTF_PARAMS(1, 2);
-inline void CryComment(const char* format, ...)
-{
-    // Fran: we need these guards for the testing framework to work
-    if (gEnv && gEnv->pSystem && gEnv->pLog)
-    {
-        va_list args;
-        va_start(args, format);
-        gEnv->pLog->LogV(ILog::eComment, format, args);
-        va_end(args);
-    }
-}
-// Summary:
-//   Logs important data that must be printed regardless verbosity.
-void CryLogAlways(const char*, ...) PRINTF_PARAMS(1, 2);
-inline void CryLogAlways(const char* format, ...)
-{
-    // log should not be used before system is ready
-    // error before system init should be handled explicitly
-
-    // Fran: we need these guards for the testing framework to work
-
-    if (gEnv && gEnv->pSystem && gEnv->pLog)
-    {
-        //      assert(gEnv);
-        //      assert(gEnv->pSystem);
-
-        va_list args;
-        va_start(args, format);
-        gEnv->pLog->LogV(ILog::eAlways, format, args);
-        va_end(args);
-    }
-}
 
 //! Writes to CLog via a callback function
 //! Any formatting is the responsiblity of the callback function

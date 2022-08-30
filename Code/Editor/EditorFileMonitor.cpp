@@ -11,6 +11,8 @@
 
 #include "EditorFileMonitor.h"
 
+#include <AzCore/Console/ILogger.h>
+
 // Editor
 #include "CryEdit.h"
 
@@ -92,7 +94,8 @@ bool CEditorFileMonitor::RegisterListener(IFileChangeListener* pListener, const 
         }
         else
         {
-            CryLogAlways("File Monitor: [%s] not found outside of PAK files. Monitoring disabled for this item", sFolderRelativeToGame);
+            //CryLogAlways("File Monitor: [%s] not found outside of PAK files. Monitoring disabled for this item", sFolderRelativeToGame);
+            AZLOG_INFO("File Monitor: [%s] not found outside of PAK files. Monitoring disabled for this item", sFolderRelativeToGame);
             success = false;
         }
     }

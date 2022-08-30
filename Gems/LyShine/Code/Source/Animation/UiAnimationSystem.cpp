@@ -417,7 +417,7 @@ void UiAnimationSystem::PlaySequence(const char* pSequenceName, IUiAnimSequence*
     }
     else
     {
-        gEnv->pLog->Log ("UiAnimationSystem::PlaySequence: Error: Sequence \"%s\" not found", pSequenceName);
+        AZLOG_INFO ("UiAnimationSystem::PlaySequence: Error: Sequence \"%s\" not found", pSequenceName);
     }
 }
 
@@ -1076,7 +1076,7 @@ bool UiAnimationSystem::AddUiAnimationListener(IUiAnimSequence* pSequence, IUiAn
     assert (pListener != 0);
     if (pSequence != NULL && std::find(m_sequences.begin(), m_sequences.end(), pSequence) == m_sequences.end())
     {
-        gEnv->pLog->Log ("UiAnimationSystem::AddUiAnimationListener: Sequence %p unknown to UiAnimationSystem", pSequence);
+        AZLOG_INFO ("UiAnimationSystem::AddUiAnimationListener: Sequence %p unknown to UiAnimationSystem", pSequence);
         return false;
     }
 
@@ -1089,7 +1089,7 @@ bool UiAnimationSystem::RemoveUiAnimationListener(IUiAnimSequence* pSequence, IU
     if (pSequence != NULL
         && std::find(m_sequences.begin(), m_sequences.end(), pSequence) == m_sequences.end())
     {
-        gEnv->pLog->Log ("UiAnimationSystem::AddUiAnimationListener: Sequence %p unknown to UiAnimationSystem", pSequence);
+        AZLOG_INFO ("UiAnimationSystem::AddUiAnimationListener: Sequence %p unknown to UiAnimationSystem", pSequence);
         return false;
     }
     return stl::find_and_erase(m_animationListenerMap[pSequence], pListener);

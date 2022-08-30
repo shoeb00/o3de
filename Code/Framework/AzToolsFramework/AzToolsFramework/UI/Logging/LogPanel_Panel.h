@@ -84,41 +84,26 @@ namespace AzToolsFramework
             AZStd::string m_window;
             AZStd::string m_tabName;
             AZStd::string m_textFilter;
-            AZ::u32 m_filterFlags;
+            
 
             enum FilterType
             {
-                FILTER_NORMAL = 0,
-                FILTER_WARNING,
-                FILTER_ERROR,
-                FILTER_DEBUG,
-                LAST_FILTER
+                FILTER_NONE = 0,
+                FILTER_NORMAL = (1 << 1),
+                FILTER_WARNING = (1 << 2),
+                FILTER_ERROR = (1 << 3),
+                FILTER_DEBUG = (1 << 4),
+                LAST_FILTER = (1 << 5)
             };
 
-            TabSettings() { }
-            TabSettings(const AZStd::string& in_tabName, const AZStd::string& in_window, const AZStd::string& in_filter)
-                : m_window(in_window)
-                , m_tabName(in_tabName)
-                , m_textFilter(in_filter)
-                , m_filterFlags(0)
-            {
-                m_filterFlags |= (0x01 << FILTER_NORMAL);
-                m_filterFlags |= (0x01 << FILTER_WARNING);
-                m_filterFlags |= (0x01 << FILTER_ERROR);
-                m_filterFlags |= (0x01 << FILTER_DEBUG);
-            }
-            TabSettings(const AZStd::string& in_tabName, const AZStd::string& in_window, const AZStd::string& in_filter, bool in_normal, bool in_warning, bool in_error, bool in_debug)
-                : m_window(in_window)
-                , m_tabName(in_tabName)
-                , m_textFilter(in_filter)
-                , m_filterFlags(0)
-            {
-                m_filterFlags |= in_normal ? (0x01 << FILTER_NORMAL) : 0;
-                m_filterFlags |= in_warning ? (0x01 << FILTER_WARNING) : 0;
-                m_filterFlags |= in_error ? (0x01 << FILTER_ERROR) : 0;
-                m_filterFlags |= in_debug ? (0x01 << FILTER_DEBUG) : 0;
-            }
+            FilterType m_filterFlags = FilterType::FILTER_NONE;            
+
+            TabSettings() = default;
+            TabSettings(const AZStd::string& in_tabName, const AZStd::string& in_window, const AZStd::string& in_filter);
+            TabSettings(const AZStd::string& in_tabName, const AZStd::string& in_window, const AZStd::string& in_filter, bool in_normal, bool in_warning, bool in_error, bool in_debug);
         };
+
+        AZ_DEFINE_ENUM_BITWISE_OPERATORS(TabSettings::FilterType);
 
         //! BaseLogPanel is the base GUI class that has tabs (as opposed to a single view)
         //!    you derive from this class and handle the AddTab() and other such messages
@@ -338,7 +323,7 @@ Q_SIGNALS:
                         ->Field("m_tabSettings", &SavedState::m_tabSettings);
 
                     serialize->Class<TabSettings>()
-                        ->Version(1)
+                        ->Version(2)
                         ->Field("window", &TabSettings::m_window)
                         ->Field("tabName", &TabSettings::m_tabName)
                         ->Field("textFilter", &TabSettings::m_textFilter)

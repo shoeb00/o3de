@@ -724,7 +724,8 @@ BOOL GetComputerName(LPSTR lpBuffer, LPDWORD lpnSize)
 
     if (-1 == err)
     {
-        CryLog("GetComputerName falied [%d]\n", errno);
+        //CryLog("GetComputerName falied [%d]\n", errno);
+        AZLOG_INFO("GetComputerName falied [%d]\n", errno);
         return FALSE;
     }
     return TRUE;

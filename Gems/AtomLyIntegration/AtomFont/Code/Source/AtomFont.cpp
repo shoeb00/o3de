@@ -21,6 +21,7 @@
 #include <CryCommon/CryPath.h>
 #include <CryCommon/ILocalizationManager.h>
 
+#include <AzCore/Console/ILogger.h>
 #include <AzCore/std/string/conversions.h>
 #include <AzCore/std/string/string_view.h>
 #include <AzCore/std/parallel/lock.h>
@@ -329,7 +330,8 @@ namespace
 
 AZ::AtomFont::AtomFont([[maybe_unused]] ISystem* system)
 {
-    CryLogAlways("Using FreeType %d.%d.%d", FREETYPE_MAJOR, FREETYPE_MINOR, FREETYPE_PATCH);
+    //CryLogAlways("Using FreeType %d.%d.%d", FREETYPE_MAJOR, FREETYPE_MINOR, FREETYPE_PATCH);
+    AZLOG_INFO("Using FreeType %d.%d.%d", FREETYPE_MAJOR, FREETYPE_MINOR, FREETYPE_PATCH);
 
     // Persist fonts for application lifetime to prevent unnecessary work
     REGISTER_CVAR(r_persistFontFamilies, r_persistFontFamilies, VF_NULL, "Persist loaded font families for lifetime of application.");

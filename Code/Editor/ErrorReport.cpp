@@ -11,6 +11,8 @@
 
 #include "ErrorReport.h"
 
+#include <AzCore/Console/ILogger.h>
+
 // Editor
 #include "ErrorReportDialog.h"
 
@@ -185,14 +187,17 @@ void CErrorReport::Display()
     }
 
     // Log all errors.
-    CryLogAlways("========================= Errors =========================");
+    //CryLogAlways("========================= Errors =========================");
+    AZLOG_INFO("========================= Errors =========================");
     for (int i = 0; i < m_errors.size(); i++)
     {
         CErrorRecord& err = m_errors[i];
         QString str = err.GetErrorText();
-        CryLogAlways("%3d) %s", i, str.toUtf8().data());
+        //CryLogAlways("%3d) %s", i, str.toUtf8().data());
+        AZLOG_INFO("%3d) %s", i, str.toUtf8().data());
     }
-    CryLogAlways("========================= End Errors =========================");
+    //CryLogAlways("========================= End Errors =========================");
+    AZLOG_INFO("========================= End Errors =========================");
 
     ICVar* const noErrorReportWindowCVar = gEnv && gEnv->pConsole ? gEnv->pConsole->GetCVar("sys_no_error_report_window") : nullptr;
     if (noErrorReportWindowCVar && noErrorReportWindowCVar->GetIVal() == 0)

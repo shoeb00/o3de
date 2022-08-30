@@ -88,7 +88,7 @@ namespace AzToolsFramework
             // you alter the data.  call scrollToBottom to scroll to the bottom!
             bool IsAtMaxScroll() const;
 
-            TabSettings settings() const;
+            TabSettings GetSettings() const;
 
         protected:
             // override this if you want to provide an implementation that decorates the text in some way.

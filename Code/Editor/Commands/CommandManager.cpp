@@ -11,6 +11,7 @@
 
 #include "CommandManager.h"
 
+#include <AzCore/Console/ILogger.h>
 #include <AzToolsFramework/PythonTerminal/ScriptTermDialog.h>
 
 // Editor
@@ -236,7 +237,8 @@ QString CEditorCommandManager::Execute(const AZStd::string& module, const AZStd:
     }
     else
     {
-        CryLogAlways("Error: Trying to execute a unknown command, '%s'!", fullName.c_str());
+        //CryLogAlways("Error: Trying to execute a unknown command, '%s'!", fullName.c_str());
+        AZLOG_INFO("Error: Trying to execute a unknown command, '%s'!", fullName.c_str());
     }
 
     return "";
@@ -269,7 +271,8 @@ QString CEditorCommandManager::Execute(const AZStd::string& cmdLine)
     }
     else
     {
-        CryLogAlways("Error: Trying to execute a unknown command, '%s'!", cmdLine.c_str());
+       //CryLogAlways("Error: Trying to execute a unknown command, '%s'!", cmdLine.c_str());
+        AZLOG_INFO("Error: Trying to execute a unknown command, '%s'!", cmdLine.c_str());
     }
 
     return "";
@@ -288,7 +291,8 @@ void CEditorCommandManager::Execute(int commandId)
     }
     else
     {
-        CryLogAlways("Error: Trying to execute a unknown command of ID '%d'!", commandId);
+        //CryLogAlways("Error: Trying to execute a unknown command of ID '%d'!", commandId);
+        AZLOG_INFO("Error: Trying to execute a unknown command of ID '%d'!", commandId);
     }
 }
 

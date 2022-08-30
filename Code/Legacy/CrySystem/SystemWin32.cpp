@@ -14,6 +14,8 @@
 #include <IRenderer.h>
 #include <IMovieSystem.h>
 #include <ILog.h>
+
+#include <AzCore/Console/ILogger.h>
 #include <AzCore/Debug/StackTracer.h>
 #include <AzCore/IO/SystemFile.h> // for AZ_MAX_PATH_LEN
 #include <AzCore/std/allocator_stack.h>
@@ -266,15 +268,21 @@ void CSystem::FatalError(const char* format, ...)
     // get system error message before any attempt to write into log
     const char* szSysErrorMessage = GetLastSystemErrorMessage();
 
-    CryLogAlways("=============================================================================");
-    CryLogAlways("*ERROR");
-    CryLogAlways("=============================================================================");
+    //CryLogAlways("=============================================================================");
+    //CryLogAlways("*ERROR");
+    //CryLogAlways("=============================================================================");
+    //// write both messages into log
+    //CryLogAlways("%s", szBuffer);
+    AZLOG_INFO("=============================================================================");
+    AZLOG_INFO("*ERROR");
+    AZLOG_INFO("=============================================================================");
     // write both messages into log
-    CryLogAlways("%s", szBuffer);
+    AZLOG_INFO("%s", szBuffer);
 
     if (szSysErrorMessage)
     {
-        CryLogAlways("Last System Error: %s", szSysErrorMessage);
+        //CryLogAlways("Last System Error: %s", szSysErrorMessage);
+        AZLOG_INFO("Last System Error: %s", szSysErrorMessage);
     }
 
     if (GetUserCallback())
@@ -379,7 +387,8 @@ void CSystem::debug_LogCallStack(int nMaxFuncs, [[maybe_unused]] int nFlags)
     GetISystem()->debug_GetCallStack(funcs, nCount);
     for (int i = 1; i < nCount; i++) // start from 1 to skip this function.
     {
-        CryLogAlways("    %02d) %s", i, funcs[i]);
+        //CryLogAlways("    %02d) %s", i, funcs[i]);
+        AZLOG_INFO("    %02d) %s", i, funcs[i]);
     }
 }
 

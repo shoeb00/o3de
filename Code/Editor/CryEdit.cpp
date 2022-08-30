@@ -42,6 +42,7 @@ AZ_POP_DISABLE_WARNING
 #include <AzCore/Casting/numeric_cast.h>
 #include <AzCore/Component/ComponentApplicationBus.h>
 #include <AzCore/Component/ComponentApplicationLifecycle.h>
+#include <AzCore/Console/ILogger.h>
 #include <AzCore/Module/Environment.h>
 #include <AzCore/RTTI/BehaviorContext.h>
 #include <AzCore/std/smart_ptr/make_shared.h>
@@ -144,6 +145,7 @@ AZ_POP_DISABLE_WARNING
 
 #include <AzToolsFramework/Undo/UndoSystem.h>
 
+#include "Log/LogWindow.h"
 
 #if defined(AZ_PLATFORM_WINDOWS)
 #include <AzFramework/API/ApplicationAPI_Platform.h>
@@ -987,6 +989,8 @@ AZ::Outcome<void, AZStd::string> CCryEditApp::InitGameSystem(HWND hwndForInputSy
 {
     CGameEngine* pGameEngine = new CGameEngine;
 
+    LogWindow::HookUpCache();
+
     AZ::Outcome<void, AZStd::string> initOutcome = pGameEngine->Init(m_bPreviewMode, m_bTestMode, qApp->arguments().join(" ").toUtf8().data(), g_pInitializeUIInfo, hwndForInputSystem);
     if (!initOutcome.IsSuccess())
     {
@@ -1726,10 +1730,8 @@ bool CCryEditApp::InitInstance()
 
     if (!InitGame())
     {
-        if (gEnv && gEnv->pLog)
-        {
-            gEnv->pLog->LogError("Game can not be initialized, InitGame() failed.");
-        }
+        AZLOG_ERROR("Game can not be initialized, InitGame() failed.");
+
         if (!cmdInfo.m_bExport)
         {
             QMessageBox::critical(AzToolsFramework::GetActiveWindow(), QString(), QObject::tr("Game can not be initialized, please refer to the editor log file"));
@@ -1845,7 +1847,8 @@ bool CCryEditApp::InitInstance()
         int startUpMacroIndex = GetIEditor()->GetToolBoxManager()->GetMacroIndex("startup", true);
         if (startUpMacroIndex >= 0)
         {
-            CryLogAlways("Executing the startup macro");
+            //CryLogAlways("Executing the startup macro");
+            AZLOG_INFO("Executing the startup macro");
             GetIEditor()->GetToolBoxManager()->ExecuteMacro(startUpMacroIndex, true);
         }
     }
@@ -2134,7 +2137,8 @@ int CCryEditApp::ExitInstance(int exitCode)
             int shutDownMacroIndex = GetIEditor()->GetToolBoxManager()->GetMacroIndex("shutdown", true);
             if (shutDownMacroIndex >= 0)
             {
-                CryLogAlways("Executing the shutdown macro");
+                //CryLogAlways("Executing the shutdown macro");
+                AZLOG_INFO("Executing the startup macro");
                 GetIEditor()->GetToolBoxManager()->ExecuteMacro(shutDownMacroIndex, true);
             }
         }
@@ -3505,7 +3509,8 @@ void CCryEditApp::OnViewConfigureLayout()
     if (GetIEditor()->IsInGameMode())
     {
         // you may not change your viewports while game mode is running.
-        CryLog("You may not change viewport configuration while in game mode.");
+        //CryLog("You may not change viewport configuration while in game mode.");
+        AZLOG_INFO("You may not change viewport configuration while in game mode.");
         return;
     }
     CLayoutWnd* layout = GetIEditor()->GetViewManager()->GetLayout();

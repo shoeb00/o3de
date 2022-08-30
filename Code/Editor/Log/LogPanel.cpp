@@ -17,15 +17,22 @@ namespace Logging
         : AzToolsFramework::LogPanel::StyledTracePrintFLogPanel(parent)
     {
 
-        AzToolsFramework::LogPanel::TabSettings settings(s_logName,
-            "",
-            "",
-            true,
-            true,
-            true,
-            true);
+        //AzToolsFramework::LogPanel::TabSettings settings(s_logName,
+        //    "",
+        //    "",
+        //    true,
+        //    true,
+        //    true,
+        //    true);
 
-        AddLogTab(settings);
+        //AddLogTab(settings);
+
+        AddLogTab(AzToolsFramework::LogPanel::TabSettings("All", "", "", true, true, true, true));
+        AddLogTab(AzToolsFramework::LogPanel::TabSettings("Debug", "", "", false, false, false, true));
+        AddLogTab(AzToolsFramework::LogPanel::TabSettings("Messages", "", "", true, false, false, false));
+        AddLogTab(AzToolsFramework::LogPanel::TabSettings("Errors", "", "", false, false, true, false));
+        AddLogTab(AzToolsFramework::LogPanel::TabSettings("Warnings", "", "", false, true, false, false));
+
     }
 
     QWidget* LogPanel::CreateTab(const AzToolsFramework::LogPanel::TabSettings& settings)
@@ -42,7 +49,7 @@ namespace Logging
 
     void LogTab::AddInitialLogMessage()
     {
-        LogTraceMessage(AzToolsFramework::Logging::LogLine::TYPE_MESSAGE, s_logName, "Started recording logs. To check previous logs please navigate to the logs folder.", true);
+        //LogTraceMessage(AzToolsFramework::Logging::LogLine::TYPE_MESSAGE, s_logName, "Started recording logs. To check previous logs please navigate to the logs folder.", true);
     }
 
     bool LogTab::OnAssert(const char* message)
@@ -72,6 +79,11 @@ namespace Logging
         //}
 
         return AzToolsFramework::LogPanel::StyledTracePrintFLogTab::OnPrintf(window, message);
+    }
+
+    bool LogTab::OnOutput(const char* window, const char* message)
+    {
+        return AzToolsFramework::LogPanel::StyledTracePrintFLogTab::OnOutput(window, message);
     }
 
     bool LogTab::OnError(const char* window, const char* message)

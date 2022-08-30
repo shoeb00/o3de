@@ -1486,6 +1486,8 @@ void MainWindow::InvalidateControls()
 
 void MainWindow::RegisterStdViewClasses()
 {
+    LogWindow::RegisterViewClass();
+
     AzAssetBrowserWindow::createListenerForShowAssetEditorEvent(this);
 
     CTrackViewDialog::RegisterViewClass();
@@ -1498,7 +1500,6 @@ void MainWindow::RegisterStdViewClasses()
     CSettingsManagerDialog::RegisterViewClass();
     AzAssetBrowserWindow::RegisterViewClass();
     AssetEditorWindow::RegisterViewClass();
-    LogWindow::RegisterViewClass();
 
     // Notify that views can now be registered
     AzToolsFramework::EditorEvents::Bus::Broadcast(

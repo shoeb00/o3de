@@ -649,7 +649,7 @@ void CUiAnimSequence::PrecacheStatic(const float startTime)
     sTemp += m_name.c_str();
 
 
-    gEnv->pLog->Log("=== Precaching render data for Ui animation: %s ===", GetName());
+    AZLOG_INFO("=== Precaching render data for Ui animation: %s ===", GetName());
 
     m_precached = true;
 }

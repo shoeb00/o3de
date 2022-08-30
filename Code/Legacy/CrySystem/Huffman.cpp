@@ -174,7 +174,8 @@ void HuffmanCoder::CompressInput(const uint8* const pInput, const size_t numByte
             }
         }
         szBits[32] = 0;
-        CryLogAlways("%c - %s (%u)", value, szBits, numBits);*/
+        //CryLogAlways("%c - %s (%u)", value, szBits, numBits);
+        AZLOG_INFO("%c - %s (%u)", value, szBits, numBits);*/
         streamBuilder.AddBits(value, numBits);
     }
     streamBuilder.AddBits(m_Codes[END_OF_STREAM].value, m_Codes[END_OF_STREAM].numBits);
@@ -194,7 +195,8 @@ size_t HuffmanCoder::UncompressInput(const uint8* const pInput, const size_t num
         {
             uint8 bitValue = streamBuilder.GetBit();
 #if 0
-            CryLogAlways("bit=%ld\n", bitValue);
+            //CryLogAlways("bit=%ld\n", bitValue);
+            AZLOG_INFO("bit=%ld\n", bitValue);
 #endif
 
             if (bitValue == 0)
@@ -215,10 +217,12 @@ size_t HuffmanCoder::UncompressInput(const uint8* const pInput, const size_t num
         code = node;
 #if 0
         {
-            CryLogAlways("%c", code);
+            //CryLogAlways("%c", code);
+            AZLOG_INFO("%c", code);
             if (code == '\0')
             {
-                CryLogAlways("EOM");
+                //CryLogAlways("EOM");
+                AZLOG_INFO("EOM");
             }
         }
 #endif

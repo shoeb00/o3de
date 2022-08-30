@@ -128,6 +128,8 @@ namespace AzToolsFramework
         void BaseLogView::ConnectModelToView(QAbstractItemModel* ptrModel)
         {
             m_ptrLogView->setModel(ptrModel);
+            m_ptrLogView->setSortingEnabled(true);
+
             connect(m_ptrLogView->model(), SIGNAL(rowsInserted(const QModelIndex&, int, int)), this, SLOT(rowsInserted(const QModelIndex&, int, int)));
 
             connect(m_ptrLogView->selectionModel(), &QItemSelectionModel::currentChanged, this, &BaseLogView::CurrentItemChanged);
