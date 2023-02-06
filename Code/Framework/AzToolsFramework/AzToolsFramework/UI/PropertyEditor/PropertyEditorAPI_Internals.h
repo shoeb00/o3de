@@ -23,6 +23,7 @@
 #include <AzToolsFramework/UI/DocumentPropertyEditor/PropertyEditorToolsSystemInterface.h>
 #include <AzToolsFramework/UI/PropertyEditor/InstanceDataHierarchy.h>
 #include <AzCore/Asset/AssetSerializer.h>
+#include <AzFramework/DocumentPropertyEditor/PropertyEditorSystemInterface.h>
 
 class QWidget;
 class QColor;
@@ -106,6 +107,10 @@ namespace AzToolsFramework
         PropertyHandlerBase();
         virtual ~PropertyHandlerBase();
 
+        // This should be overriden by property handlers that need to register their own
+        // adapter elements (nodes, property editors, attributes)
+        virtual void RegisterWithPropertySystem(AZ::DocumentPropertyEditor::PropertyEditorSystemInterface* /*system*/) {}
+
         // you need to define this.
         virtual AZ::u32 GetHandlerName() const = 0;  // AZ_CRC("IntSlider")
 
@@ -163,7 +168,7 @@ namespace AzToolsFramework
         virtual void ReadValuesIntoGUI_Internal(QWidget* widget, InstanceDataNode* t) = 0;
         // we define this automatically for you, you don't have to override it.
         virtual bool HandlesType(const AZ::Uuid& id) const = 0;
-        virtual const AZ::Uuid& GetHandledType() const = 0;
+        virtual AZ::TypeId GetHandledType() const = 0;
         virtual QWidget* GetFirstInTabOrder_Internal(QWidget* widget) = 0;
         virtual QWidget* GetLastInTabOrder_Internal(QWidget* widget) = 0;
         virtual void UpdateWidgetInternalTabbing_Internal(QWidget* widget) = 0;
@@ -232,14 +237,21 @@ namespace AzToolsFramework
                 }
                 AZ::Crc32 attributeId = AZ::Crc32(name.GetStringView());
 
-                const AZ::DocumentPropertyEditor::AttributeDefinitionInterface* attribute =
-                    propertyEditorSystem->FindNodeAttribute(name, propertyEditorSystem->FindNode(AZ::Name(GetHandlerName(m_rpeHandler))));
                 AZStd::shared_ptr<AZ::Attribute> marshalledAttribute;
-                if (attribute != nullptr)
-                {
-                    marshalledAttribute = attribute->DomValueToLegacyAttribute(attributeIt->second);
-                }
-                else
+                // Attribute definitions may be templated and will thus support multiple types.
+                // Therefore we must try all registered definitions for a particular attribute
+                // in an effort to find one that can successfully extract the attribute data.
+                propertyEditorSystem->EnumerateRegisteredAttributes(
+                    name,
+                    [&](const AZ::DocumentPropertyEditor::AttributeDefinitionInterface& attributeReader)
+                    {
+                        if (marshalledAttribute == nullptr)
+                        {
+                            marshalledAttribute = attributeReader.DomValueToLegacyAttribute(attributeIt->second);
+                        }
+                    });
+
+                if (!marshalledAttribute)
                 {
                     marshalledAttribute = AZ::Reflection::WriteDomValueToGenericAttribute(attributeIt->second);
                 }
@@ -479,7 +491,7 @@ namespace AzToolsFramework
             return GetHandledType() == id;
         }
 
-        virtual const AZ::Uuid& GetHandledType() const override
+        virtual AZ::TypeId GetHandledType() const override
         {
             return AZ::SerializeTypeInfo<PropertyType>::GetUuid();
         }
@@ -512,7 +524,22 @@ namespace AzToolsFramework
 
             const AZ::Uuid& desiredUUID = GetHandledType();
 
-            PropertyType* actualCast = static_cast<PropertyType*>(serializeContext->DownCast(tempValue, propertyType, desiredUUID));
+            PropertyType* actualCast = [&]() -> PropertyType*
+            {
+                if (serializeContext->CanDowncast(propertyType, desiredUUID))
+                {
+                    return static_cast<PropertyType*>(serializeContext->DownCast(tempValue, propertyType, desiredUUID));
+                }
+                // Cover the case of Asset<T> property handling
+                else if (const auto* genericTypeInfo = serializeContext->FindGenericClassInfo(propertyType);
+                            genericTypeInfo && genericTypeInfo->GetGenericTypeId() == desiredUUID)
+                {
+                    return reinterpret_cast<PropertyType*>(tempValue);
+                }
+
+                return nullptr;
+            }();
+
             AZ_Assert(actualCast, "Could not cast from the existing type ID to the actual typeid required by the editor.");
             WriteGUIValuesIntoProperty(0, wid, *actualCast, nullptr);
         }

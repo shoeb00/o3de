@@ -15,7 +15,9 @@
 #include <Source/EditorHeightfieldColliderComponent.h>
 #include <Source/EditorHingeJointComponent.h>
 #include <Source/EditorJointComponent.h>
+#include <Source/EditorPrismaticJointComponent.h>
 #include <Source/EditorRigidBodyComponent.h>
+#include <Source/EditorStaticRigidBodyComponent.h>
 #include <Source/EditorShapeColliderComponent.h>
 #include <Source/PhysXCharacters/Components/EditorCharacterControllerComponent.h>
 #include <Source/PhysXCharacters/Components/EditorCharacterGameplayComponent.h>
@@ -38,8 +40,10 @@ namespace PhysX
             EditorForceRegionComponent::CreateDescriptor(),
             EditorHeightfieldColliderComponent::CreateDescriptor(),
             EditorHingeJointComponent::CreateDescriptor(),
+            EditorPrismaticJointComponent::CreateDescriptor(),
             EditorJointComponent::CreateDescriptor(),
             EditorRigidBodyComponent::CreateDescriptor(),
+            EditorStaticRigidBodyComponent::CreateDescriptor(),
             EditorShapeColliderComponent::CreateDescriptor(),
             EditorSystemComponent::CreateDescriptor(),
             Pipeline::MeshBehavior::CreateDescriptor(),

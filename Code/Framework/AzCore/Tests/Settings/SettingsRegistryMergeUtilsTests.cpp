@@ -32,7 +32,7 @@ namespace SettingsRegistryMergeUtilsTests
     };
 
     class SettingsRegistryMergeUtilsParamFixture
-        : public UnitTest::ScopedAllocatorSetupFixture
+        : public UnitTest::LeakDetectionFixture
         , public ::testing::WithParamInterface<DumpSettingsRegistryParams>
     {
     public:
@@ -243,7 +243,7 @@ namespace SettingsRegistryMergeUtilsTests
         AZStd::fixed_vector<SettingsKeyValuePair, 20> m_expectedSettings;
     };
     class SettingsRegistryMergeUtilsConfigFileFixture
-        : public UnitTest::ScopedAllocatorSetupFixture
+        : public UnitTest::LeakDetectionFixture
         , public ::testing::WithParamInterface<ConfigFileParams>
     {
     public:
@@ -280,7 +280,7 @@ namespace SettingsRegistryMergeUtilsTests
             {
                 if (size_t commentOffset = line.find(commentPrefix); commentOffset != AZStd::string_view::npos)
                 {
-                    return line.substr(0, commentOffset);
+                    line = line.substr(0, commentOffset);
                 }
             }
             return line;
@@ -479,7 +479,7 @@ tags=tools,renderer,metal)"
     };
 
     class SettingsRegistryGemVisitFixture
-        : public UnitTest::ScopedAllocatorSetupFixture
+        : public UnitTest::LeakDetectionFixture
         , public ::testing::WithParamInterface<SettingsRegistryGemVisitParams>
     {
     public:
@@ -527,13 +527,13 @@ tags=tools,renderer,metal)"
     TEST_P(SettingsRegistryGemVisitFixture, SettingsRegistryMergeUtils_AllManifestGems_AreInSettingsRegistry)
     {
         AZStd::vector<AZ::IO::Path> manifestGemPaths;
-        auto GetManifestGemPaths = [&manifestGemPaths, this](AZStd::string_view pathKey,
-            AZStd::string_view, AZ::SettingsRegistryInterface::Type)
+        auto GetManifestGemPaths = [&manifestGemPaths, this](const AZ::SettingsRegistryInterface::VisitArgs& visitArgs)
         {
             using FixedValueString = AZ::SettingsRegistryInterface::FixedValueString;
             AZ::IO::Path gemPath;
-            EXPECT_TRUE(m_registry->Get(gemPath.Native(), FixedValueString(pathKey) + "/Path"));
+            EXPECT_TRUE(m_registry->Get(gemPath.Native(), FixedValueString(visitArgs.m_jsonKeyPath) + "/Path"));
             manifestGemPaths.push_back(gemPath.LexicallyRelative(m_testFolder.GetDirectory()));
+            return AZ::SettingsRegistryInterface::VisitResponse::Skip;
         };
 
         EXPECT_TRUE(AZ::SettingsRegistryVisitorUtils::VisitObject(*m_registry,
@@ -680,7 +680,7 @@ tags=tools,renderer,metal)"
         ::testing::ValuesIn(MakeGemVisitTestingValues()));
 
     class SettingsRegistryMergeUtilsCommandLineFixture
-        : public UnitTest::ScopedAllocatorSetupFixture
+        : public UnitTest::LeakDetectionFixture
     {
     public:
         void SetUp() override

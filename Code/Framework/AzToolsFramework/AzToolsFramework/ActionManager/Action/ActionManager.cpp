@@ -6,16 +6,130 @@
  *
  */
 
-#include <AzToolsFramework/ActionManager/Action/ActionManager.h>
+#include <QApplication>
+#include <QtGui/private/qguiapplication_p.h>
+#include <QShortcutEvent>
 
+#include <AzToolsFramework/ActionManager/Action/ActionManager.h>
 #include <AzToolsFramework/ActionManager/Menu/MenuManagerInterface.h>
 
 namespace AzToolsFramework
 {
+    //! This class is used to install an event filter on each widget that the action contexts are registered to in order to properly handle
+    //! ambiguous shorcuts.
+    class ActionContextWidgetWatcher : public QObject
+    {
+    public:
+        explicit ActionContextWidgetWatcher(QObject* parent)
+            : QObject(parent)
+        {
+        }
+
+        static bool TriggerActiveActionsWithShortcut(const QList<QAction*>& actions, const QKeySequence& shortcutKeySequence)
+        {
+            // Note: Triggering an action may change the enabled state of other actions.
+            // As such, we first collect the actions that should be triggered, then trigger them in sequence.
+
+            // Collect all actions that are enabled and match with the shortcut.
+            QList<QAction*> matchingActions;
+            for (QAction* action : actions)
+            {
+                if (action->isEnabled() && action->shortcut() == shortcutKeySequence)
+                {
+                    matchingActions.append(action);
+                }
+            }
+
+            // Trigger all matching actions.
+            for (QAction* action : matchingActions)
+            {
+                action->trigger();
+            }
+
+            // Return whether any action was triggered.
+            return !matchingActions.isEmpty();
+        }
+
+        bool eventFilter(QObject* watched, QEvent* event) override
+        {
+            switch (event->type())
+            {
+            case QEvent::ShortcutOverride:
+            {
+                // QActions default "autoRepeat" to true, which is not an ideal user experience.
+                // We globally disable that behavior here - in the unlikely event a shortcut needs to
+                // replicate it, its owner can instead implement a keyEvent handler
+                if (static_cast<QKeyEvent*>(event)->isAutoRepeat())
+                {
+                    event->accept();
+                    return true;
+                }
+
+                auto keyEvent = static_cast<QKeyEvent*>(event);
+                int keyCode = keyEvent->key();
+                Qt::KeyboardModifiers modifiers = keyEvent->modifiers();
+                if (modifiers & Qt::ShiftModifier)
+                {
+                    keyCode += Qt::SHIFT;
+                }
+                if (modifiers & Qt::ControlModifier)
+                {
+                    keyCode += Qt::CTRL;
+                }
+                if (modifiers & Qt::AltModifier)
+                {
+                    keyCode += Qt::ALT;
+                }
+                if (modifiers & Qt::MetaModifier)
+                {
+                    keyCode += Qt::META;
+                }
+
+                QKeySequence keySequence(keyCode);
+
+                auto globalShortcutMap = &QGuiApplicationPrivate::instance()->shortcutMap;
+                bool isAmbiguous = globalShortcutMap->hasShortcutForKeySequence(keySequence);
+                if (isAmbiguous)
+                {
+                    QWidget* watchedWidget = qobject_cast<QWidget*>(watched);
+
+                    if (TriggerActiveActionsWithShortcut(watchedWidget->actions(), keySequence))
+                    {
+                        // We need to accept the event in addition to return true on this event filter
+                        // to ensure the event doesn't get propagated to any parent widgets.
+                        event->accept();
+                        return true;
+                    }
+                }
+                break;
+            }
+            case QEvent::Shortcut:
+            {
+                auto shortcutEvent = static_cast<QShortcutEvent*>(event);
+                if (shortcutEvent->isAmbiguous())
+                {
+                    QWidget* watchedWidget = qobject_cast<QWidget*>(watched);
+
+                    if (TriggerActiveActionsWithShortcut(watchedWidget->actions(), shortcutEvent->key()))
+                    {
+                        return true;
+                    }
+                }
+                break;
+            }
+            default:
+                break;
+            }
+            return false;
+        }
+    };
+
     ActionManager::ActionManager()
     {
         AZ::Interface<ActionManagerInterface>::Register(this);
         AZ::Interface<ActionManagerInternalInterface>::Register(this);
+
+        EditorAction::Initialize();
     }
 
     ActionManager::~ActionManager()
@@ -50,6 +164,8 @@ namespace AzToolsFramework
                 new EditorActionContext(contextIdentifier, properties.m_name, parentContextIdentifier, widget)
             }
         );
+
+        widget->installEventFilter(new ActionContextWidgetWatcher(widget));
 
         return AZ::Success();
     }
@@ -88,17 +204,19 @@ namespace AzToolsFramework
                 actionIdentifier,
                 EditorAction(
                     actionContextIterator->second->GetWidget(),
+                    actionContextIterator->first,
                     actionIdentifier,
                     properties.m_name,
                     properties.m_description,
                     properties.m_category,
                     properties.m_iconPath,
-                    properties.m_hideFromMenusWhenDisabled,
-                    properties.m_hideFromToolBarsWhenDisabled,
+                    properties.m_menuVisibility,
+                    properties.m_toolBarVisibility,
                     handler
                 )
             }
         );
+        actionContextIterator->second->AddAction(actionIdentifier);
 
         return AZ::Success();
     }
@@ -133,18 +251,20 @@ namespace AzToolsFramework
                 actionIdentifier,
                 EditorAction(
                     actionContextIterator->second->GetWidget(),
+                    actionContextIterator->first,
                     actionIdentifier,
                     properties.m_name,
                     properties.m_description,
                     properties.m_category,
                     properties.m_iconPath,
-                    properties.m_hideFromMenusWhenDisabled,
-                    properties.m_hideFromToolBarsWhenDisabled,
+                    properties.m_menuVisibility,
+                    properties.m_toolBarVisibility,
                     handler,
                     checkStateCallback
                 )
             }
         );
+        actionContextIterator->second->AddAction(actionIdentifier);
 
         return AZ::Success();
     }
@@ -300,14 +420,7 @@ namespace AzToolsFramework
                 actionIdentifier.c_str()));
         }
 
-        if (actionIterator->second.HasEnabledStateCallback())
-        {
-            return AZ::Failure(AZStd::string::format(
-                "Action Manager - Could not install enabled state callback on action \"%s\" - action already has an enabled state callback installed.",
-                actionIdentifier.c_str()));
-        }
-
-        actionIterator->second.SetEnabledStateCallback(AZStd::move(enabledStateCallback));
+        actionIterator->second.AddEnabledStateCallback(AZStd::move(enabledStateCallback));
         return AZ::Success();
     }
     
@@ -479,11 +592,136 @@ namespace AzToolsFramework
         {
             return AZ::Failure(AZStd::string::format(
                 "Action Manager - Could not set category of widget action \"%s\" as no widget action with that identifier was registered.",
-                widgetActionIdentifier.c_str()));
+                widgetActionIdentifier.c_str())
+            );
         }
 
         widgetActionIterator->second.SetCategory(category);
         return AZ::Success();
+    }
+
+    ActionManagerOperationResult ActionManager::RegisterActionContextMode(
+        const AZStd::string& actionContextIdentifier, const AZStd::string& modeIdentifier)
+    {
+        auto actionContextIterator = m_actionContexts.find(actionContextIdentifier);
+        if (actionContextIterator == m_actionContexts.end())
+        {
+            return AZ::Failure(
+                AZStd::string::format(
+                    "Action Manager - Could not register mode \"%s\" for action context \"%s\" as this context has not been registered.",
+                    modeIdentifier.c_str(),
+                    actionContextIdentifier.c_str()
+                )
+            );
+        }
+
+        if (actionContextIterator->second->HasMode(modeIdentifier))
+        {
+            return AZ::Failure(
+                AZStd::string::format(
+                    "Action Manager - Could not register mode \"%s\" for action context \"%s\" - mode with the same identifier already exists.",
+                    modeIdentifier.c_str(),
+                    actionContextIdentifier.c_str()
+                )
+            );
+        }
+
+        actionContextIterator->second->AddMode(modeIdentifier);
+        return AZ::Success();
+    }
+
+    ActionManagerOperationResult ActionManager::AssignModeToAction(
+        const AZStd::string& modeIdentifier, const AZStd::string& actionIdentifier)
+    {
+        auto actionIterator = m_actions.find(actionIdentifier);
+        if (actionIterator == m_actions.end())
+        {
+            return AZ::Failure(
+                AZStd::string::format(
+                    "Action Manager - Could not set mode \"%s\" to action \"%s\" as no action with that identifier was registered.",
+                    modeIdentifier.c_str(),
+                    actionIdentifier.c_str()
+                )
+            );
+        }
+
+        auto actionContextIterator = m_actionContexts.find(actionIterator->second.GetActionContextIdentifier());
+        if (!actionContextIterator->second->HasMode(modeIdentifier))
+        {
+            return AZ::Failure(
+                AZStd::string::format(
+                    "Action Manager - Could not set mode \"%s\" to action \"%s\" as no mode with that identifier was registered.",
+                    modeIdentifier.c_str(),
+                    actionIdentifier.c_str()
+                )
+            );
+        }
+
+        actionIterator->second.AssignToMode(modeIdentifier);
+        return AZ::Success();
+    }
+
+    ActionManagerBooleanResult ActionManager::IsActionActiveInCurrentMode(const AZStd::string& actionIdentifier) const
+    {
+        auto actionIterator = m_actions.find(actionIdentifier);
+        if (actionIterator == m_actions.end())
+        {
+            return AZ::Failure(
+                AZStd::string::format(
+                    "Action Manager - Could not retrieve whether action \"%s\" is active in current mode as no action with that identifier was registered.",
+                    actionIdentifier.c_str()
+                )
+            );
+        }
+
+        return AZ::Success(actionIterator->second.IsActiveInCurrentMode());
+    }
+
+    ActionManagerOperationResult ActionManager::SetActiveActionContextMode(
+        const AZStd::string& actionContextIdentifier, const AZStd::string& modeIdentifier)
+    {
+        auto actionContextIterator = m_actionContexts.find(actionContextIdentifier);
+        if (actionContextIterator == m_actionContexts.end())
+        {
+            return AZ::Failure(
+                AZStd::string::format(
+                    "Action Manager - Could not set active mode for action context \"%s\" to \"%s\" as the action context has not been registered.",
+                    actionContextIdentifier.c_str(),
+                    modeIdentifier.c_str()
+                )
+            );
+        }
+
+        if (!actionContextIterator->second->HasMode(modeIdentifier))
+        {
+            return AZ::Failure(
+                AZStd::string::format(
+                    "Action Manager - Could not set active mode for action context \"%s\" to \"%s\" as the mode has not been registered.",
+                    actionContextIdentifier.c_str(),
+                    modeIdentifier.c_str()
+                )
+            );
+        }
+
+        if (actionContextIterator->second->SetActiveMode(modeIdentifier))
+        {
+            UpdateAllActionsInActionContext(actionContextIdentifier);
+        }
+
+        return AZ::Success();
+    }
+
+    ActionManagerGetterResult ActionManager::GetActiveActionContextMode(const AZStd::string& actionContextIdentifier) const
+    {
+        auto actionContextIterator = m_actionContexts.find(actionContextIdentifier);
+        if (actionContextIterator == m_actionContexts.end())
+        {
+            return AZ::Failure(AZStd::string::format(
+                "Action Manager - Could not retrieve active mode for action context \"%s\" as it has not been registered.",
+                actionContextIdentifier.c_str()));
+        }
+
+        return AZ::Success(AZStd::move(actionContextIterator->second->GetActiveMode()));
     }
 
     QAction* ActionManager::GetAction(const AZStd::string& actionIdentifier)
@@ -530,28 +768,28 @@ namespace AzToolsFramework
         return &actionIterator->second;
     }
 
-    bool ActionManager::GetHideFromMenusWhenDisabled(const AZStd::string& actionIdentifier) const
+    ActionVisibility ActionManager::GetActionMenuVisibility(const AZStd::string& actionIdentifier) const
     {
         auto actionIterator = m_actions.find(actionIdentifier);
         if (actionIterator == m_actions.end())
         {
             // Return the default value.
-            return true;
+            return ActionVisibility::HideWhenDisabled;
         }
 
-        return actionIterator->second.GetHideFromMenusWhenDisabled();
+        return actionIterator->second.GetMenuVisibility();
     }
 
-    bool ActionManager::GetHideFromToolBarsWhenDisabled(const AZStd::string& actionIdentifier) const
+    ActionVisibility ActionManager::GetActionToolBarVisibility(const AZStd::string& actionIdentifier) const
     {
         auto actionIterator = m_actions.find(actionIdentifier);
         if (actionIterator == m_actions.end())
         {
             // Return the default value.
-            return false;
+            return ActionVisibility::OnlyInActiveMode;
         }
 
-        return actionIterator->second.GetHideFromToolBarsWhenDisabled();
+        return actionIterator->second.GetToolBarVisibility();
     }
 
     QWidget* ActionManager::GenerateWidgetFromWidgetAction(const AZStd::string& widgetActionIdentifier)
@@ -563,6 +801,23 @@ namespace AzToolsFramework
         }
 
         return widgetActionIterator->second.GenerateWidget();
+    }
+
+    void ActionManager::UpdateAllActionsInActionContext(const AZStd::string& actionContextIdentifier)
+    {
+        auto actionContextIterator = m_actionContexts.find(actionContextIdentifier);
+        if (actionContextIterator == m_actionContexts.end())
+        {
+            return;
+        }
+
+        actionContextIterator->second->IterateActionIdentifiers(
+            [&](const AZStd::string& actionIdentifier)
+            {
+                UpdateAction(actionIdentifier);
+                return true;
+            }
+        );
     }
 
 } // namespace AzToolsFramework

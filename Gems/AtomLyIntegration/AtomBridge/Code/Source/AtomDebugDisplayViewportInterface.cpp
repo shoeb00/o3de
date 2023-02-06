@@ -182,7 +182,7 @@ namespace AZ::AtomBridge
         int estimatedNumLineSegments
         )
     {
-        m_points.reserve(estimatedNumLineSegments * 2);
+        m_points.reserve(AZStd::abs(estimatedNumLineSegments) * 2);
     }
 
     void SingleColorDynamicSizeLineHelper::AddLineSegment(
@@ -460,6 +460,46 @@ namespace AZ::AtomBridge
             drawArgs.m_depthTest = m_rendState.m_depthTest;
             drawArgs.m_depthWrite = m_rendState.m_depthWrite;
             drawArgs.m_viewProjectionOverrideIndex = m_rendState.m_viewProjOverrideIndex;
+            m_auxGeomPtr->DrawTriangles(drawArgs);
+        }
+    }
+
+    void AtomDebugDisplayViewportInterface::DrawQuad2dGradient(
+        const Vector2& p1,
+        const Vector2& p2,
+        const Vector2& p3,
+        const Vector2& p4,
+        float z,
+        const Color& firstColor,
+        const Color& secondColor)
+    {
+        if (m_auxGeomPtr)
+        {
+            Vector3 points[4];
+            points[0] = Vector3(p1.GetX(), p1.GetY(), z);
+            points[1] = Vector3(p2.GetX(), p1.GetY(), z);
+            points[2] = Vector3(p3.GetX(), p3.GetY(), z);
+            points[3] = Vector3(p4.GetX(), p4.GetY(), z);
+
+            Vector3 triangles[6];
+            Color colors[6];
+            triangles[0] = points[0];       colors[0] = firstColor;
+            triangles[1] = points[1];       colors[1] = firstColor;
+            triangles[2] = points[2];       colors[2] = secondColor;
+            triangles[3] = points[2];       colors[3] = secondColor;
+            triangles[4] = points[3];       colors[4] = secondColor;
+            triangles[5] = points[0];       colors[5] = firstColor;
+
+            RPI::AuxGeomDraw::AuxGeomDynamicDrawArguments drawArgs;
+            drawArgs.m_verts = triangles;
+            drawArgs.m_vertCount = 6;
+            drawArgs.m_colors = colors;
+            drawArgs.m_colorCount = 6;
+            const bool alphaBlend = firstColor.GetA() < 1.0f || secondColor.GetA() < 1.0f;
+            drawArgs.m_opacityType = alphaBlend ? RPI::AuxGeomDraw::OpacityType::Translucent : RPI::AuxGeomDraw::OpacityType::Opaque;
+            drawArgs.m_depthTest = m_rendState.m_depthTest;
+            drawArgs.m_depthWrite = m_rendState.m_depthWrite;
+            drawArgs.m_viewProjectionOverrideIndex = m_auxGeomPtr->GetOrAdd2DViewProjOverride();
             m_auxGeomPtr->DrawTriangles(drawArgs);
         }
     }

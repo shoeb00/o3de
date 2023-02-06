@@ -84,6 +84,18 @@ namespace PhysX
         float m_tolerance = 0.1f; ///< Distance from the joint at which limits becomes enforced. Used if limit is hard.
     };
 
+    struct JointMotorProperties
+    {
+        AZ_CLASS_ALLOCATOR(JointMotorProperties, AZ::SystemAllocator, 0);
+        AZ_TYPE_INFO(JointMotorProperties, "{9CF35393-82CD-4726-B387-96F6381046B3}");
+        static void Reflect(AZ::ReflectContext* context);
+
+        JointMotorProperties() = default;
+
+        bool m_useMotor = false; ///< Enables joint actuation.
+        float m_driveForceLimit = 1.0f; ///< Force/torque limit applied by motor.
+    };
+
     struct FixedJointConfiguration : public AzPhysics::JointConfiguration 
     {
         AZ_CLASS_ALLOCATOR(FixedJointConfiguration, AZ::SystemAllocator, 0);
@@ -111,5 +123,20 @@ namespace PhysX
 
         JointGenericProperties m_genericProperties;
         JointLimitProperties m_limitProperties;
+        JointMotorProperties m_motorProperties;
+    };
+
+    //! Configuration for a prismatic joint.
+    //! Prismatic joints allow no rotation, but allow sliding along a direction aligned with the x-axis of both bodies'
+    //! joint frames.
+    struct PrismaticJointConfiguration : public AzPhysics::JointConfiguration
+    {
+        AZ_CLASS_ALLOCATOR(PrismaticJointConfiguration, AZ::SystemAllocator, 0);
+        AZ_RTTI(PrismaticJointConfiguration, "{66CA235F-FBDF-4E91-B7A0-39132BD4399D}", AzPhysics::JointConfiguration);
+        static void Reflect(AZ::ReflectContext* context);
+
+        JointGenericProperties m_genericProperties;
+        JointLimitProperties m_limitProperties;
+        JointMotorProperties m_motorProperties;
     };
 } // namespace PhysX

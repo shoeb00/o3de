@@ -22,10 +22,24 @@ namespace AzQtComponents
         , m_elideMode(Qt::ElideRight)
         , m_metricsLabel(new QLabel(this))
     {
+        connect(this, &ElidingLabel::elisionRequired, this, &ElidingLabel::handleElision);
+
         // Used to return the default sizeHint for a the un-elided text.
         // Should not be displayed.
         m_metricsLabel->hide();
         setText(text);
+    }
+
+    void ElidingLabel::handleElision(bool geometryUpdateRequired)
+    {
+        m_elidedText.clear();
+
+        elide();
+
+        if (geometryUpdateRequired)
+        {
+            updateGeometry();
+        }
     }
 
     void ElidingLabel::setText(const QString& text)
@@ -36,11 +50,9 @@ namespace AzQtComponents
         }
 
         m_text = text;
-        m_metricsLabel->setText(m_text);
-        
-        m_elidedText.clear();
-        elide();
-        updateGeometry();
+        m_metricsLabel->setText(m_text);    
+
+        emit elisionRequired(true);
     }
 
     void ElidingLabel::setDescription(const QString& description)
@@ -62,7 +74,7 @@ namespace AzQtComponents
     void ElidingLabel::resizeEvent(QResizeEvent* event)
     {
         QWidget::resizeEvent(event);
-        elide();
+        emit elisionRequired(false);
     }
 
     void ElidingLabel::elide()
@@ -73,16 +85,16 @@ namespace AzQtComponents
         {
             // If RichText tags are elided using fontMetrics.elidedText(), they will break.
             // A TextDocument is used to produce elided text that takes this into account.
-            const QString ellipsis("...");
+            static const QString ellipsis(QStringLiteral("..."));
             const int maxLineWidth = TextRect().width();
 
-            QTextDocument doc;
+            static QTextDocument doc;
             doc.setHtml(m_text);
             doc.setDefaultFont(font());
             doc.setDocumentMargin(0.0);
 
             // Turn off wrapping so the document uses a single line.
-            QTextOption option = doc.defaultTextOption();
+            static QTextOption option = doc.defaultTextOption();
             option.setWrapMode(QTextOption::WrapMode::NoWrap);
             doc.setDefaultTextOption(option);
             doc.adjustSize();

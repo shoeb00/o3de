@@ -7,26 +7,28 @@
  */
 
 #include <AzCore/UnitTest/TestTypes.h>
-#include <AzToolsFramework/UnitTest/AzToolsFrameworkTestHelpers.h>
 #include <AzToolsFramework/ToolsComponents/EditorNonUniformScaleComponent.h>
-#include <Tests/EditorTestUtilities.h>
+#include <AzToolsFramework/UnitTest/AzToolsFrameworkTestHelpers.h>
 #include <EditorColliderComponent.h>
-#include <EditorShapeColliderComponent.h>
-#include <EditorRigidBodyComponent.h>
 #include <EditorForceRegionComponent.h>
-#include <ShapeColliderComponent.h>
-#include <RigidBodyComponent.h>
-#include <StaticRigidBodyComponent.h>
-#include <RigidBodyStatic.h>
+#include <EditorRigidBodyComponent.h>
+#include <EditorStaticRigidBodyComponent.h>
+#include <EditorShapeColliderComponent.h>
 #include <LmbrCentral/Shape/BoxShapeComponentBus.h>
+#include <LmbrCentral/Shape/CompoundShapeComponentBus.h>
 #include <LmbrCentral/Shape/CylinderShapeComponentBus.h>
 #include <LmbrCentral/Shape/PolygonPrismShapeComponentBus.h>
-#include <LmbrCentral/Shape/SphereShapeComponentBus.h>
-#include <LmbrCentral/Shape/CompoundShapeComponentBus.h>
 #include <LmbrCentral/Shape/QuadShapeComponentBus.h>
+#include <LmbrCentral/Shape/SphereShapeComponentBus.h>
 #include <PhysX/ForceRegionComponentBus.h>
+#include <PhysX/MathConversion.h>
 #include <PhysX/PhysXLocks.h>
 #include <PhysX/SystemComponentBus.h>
+#include <RigidBodyComponent.h>
+#include <RigidBodyStatic.h>
+#include <ShapeColliderComponent.h>
+#include <StaticRigidBodyComponent.h>
+#include <Tests/EditorTestUtilities.h>
 #include <Tests/PhysXTestCommon.h>
 
 namespace PhysXEditorTests
@@ -56,6 +58,7 @@ namespace PhysXEditorTests
     {
         EntityPtr entity = CreateInactiveEditorEntity("ShapeColliderComponentEditorEntity");
         entity->CreateComponent<PhysX::EditorShapeColliderComponent>();
+        entity->CreateComponent<PhysX::EditorStaticRigidBodyComponent>();
         entity->CreateComponent(LmbrCentral::EditorBoxShapeComponentTypeId);
 
         // the entity should be in a valid state because the shape component requirement is satisfied
@@ -67,8 +70,21 @@ namespace PhysXEditorTests
     {
         EntityPtr entity = CreateInactiveEditorEntity("ShapeColliderComponentEditorEntity");
         entity->CreateComponent<PhysX::EditorShapeColliderComponent>();
+        entity->CreateComponent<PhysX::EditorStaticRigidBodyComponent>();
 
         // the entity should not be in a valid state because the shape collider component requires a shape component
+        AZ::Entity::DependencySortOutcome sortOutcome = entity->EvaluateDependenciesGetDetails();
+        EXPECT_FALSE(sortOutcome.IsSuccess());
+        EXPECT_TRUE(sortOutcome.GetError().m_code == AZ::Entity::DependencySortResult::MissingRequiredService);
+    }
+
+    TEST_F(PhysXEditorFixture, EditorShapeColliderComponent_RigidBodyDependencyMissing_EntityIsInvalid)
+    {
+        EntityPtr entity = CreateInactiveEditorEntity("ShapeColliderComponentEditorEntity");
+        entity->CreateComponent<PhysX::EditorShapeColliderComponent>();
+        entity->CreateComponent(LmbrCentral::EditorBoxShapeComponentTypeId);
+
+        // the entity should not be in a valid state because the shape collider component requires a rigid body component
         AZ::Entity::DependencySortOutcome sortOutcome = entity->EvaluateDependenciesGetDetails();
         EXPECT_FALSE(sortOutcome.IsSuccess());
         EXPECT_TRUE(sortOutcome.GetError().m_code == AZ::Entity::DependencySortResult::MissingRequiredService);
@@ -78,6 +94,7 @@ namespace PhysXEditorTests
     {
         EntityPtr entity = CreateInactiveEditorEntity("ShapeColliderComponentEditorEntity");
         entity->CreateComponent<PhysX::EditorShapeColliderComponent>();
+        entity->CreateComponent<PhysX::EditorStaticRigidBodyComponent>();
         entity->CreateComponent(LmbrCentral::EditorBoxShapeComponentTypeId);
 
         // adding a second shape collider component should make the entity invalid
@@ -93,6 +110,7 @@ namespace PhysXEditorTests
     {
         EntityPtr entity = CreateInactiveEditorEntity("ShapeColliderComponentEditorEntity");
         entity->CreateComponent<PhysX::EditorShapeColliderComponent>();
+        entity->CreateComponent<PhysX::EditorStaticRigidBodyComponent>();
         entity->CreateComponent(LmbrCentral::EditorBoxShapeComponentTypeId);
 
         // the shape collider component should be compatible with multiple collider components
@@ -109,6 +127,7 @@ namespace PhysXEditorTests
         // create an editor entity with a shape collider component and a box shape component
         EntityPtr editorEntity = CreateInactiveEditorEntity("ShapeColliderComponentEditorEntity");
         editorEntity->CreateComponent<PhysX::EditorShapeColliderComponent>();
+        editorEntity->CreateComponent<PhysX::EditorStaticRigidBodyComponent>();
         editorEntity->CreateComponent(LmbrCentral::EditorBoxShapeComponentTypeId);
         editorEntity->Activate();
 
@@ -124,6 +143,7 @@ namespace PhysXEditorTests
         // create an editor entity with a shape collider component and a box shape component
         EntityPtr editorEntity = CreateInactiveEditorEntity("ShapeColliderComponentEditorEntity");
         editorEntity->CreateComponent<PhysX::EditorShapeColliderComponent>();
+        editorEntity->CreateComponent<PhysX::EditorStaticRigidBodyComponent>();
         editorEntity->CreateComponent(LmbrCentral::EditorBoxShapeComponentTypeId);
         editorEntity->Activate();
 
@@ -149,6 +169,187 @@ namespace PhysXEditorTests
         AZ::Aabb aabb = staticBody->GetAabb();
         EXPECT_TRUE(aabb.GetMax().IsClose(0.5f * boxDimensions));
         EXPECT_TRUE(aabb.GetMin().IsClose(-0.5f * boxDimensions));
+    }
+
+    TEST_F(PhysXEditorFixture, EditorShapeColliderComponent_ShapeColliderWithBoxAndTranslationOffset_CorrectEditorStaticBodyGeometry)
+    {
+        AZ::Transform transform(AZ::Vector3(2.0f, -6.0f, 5.0f), AZ::Quaternion(0.3f, -0.3f, 0.1f, 0.9f), 1.6f);
+        AZ::Vector3 nonUniformScale(2.0f, 2.5f, 0.5f);
+        AZ::Vector3 boxDimensions(5.0f, 8.0f, 6.0f);
+        AZ::Vector3 translationOffset(-4.0f, 3.0f, -1.0f);
+        EntityPtr editorEntity = CreateBoxShapeColliderEditorEntity(transform, nonUniformScale, boxDimensions, translationOffset);
+
+        AZ::Aabb aabb = GetSimulatedBodyAabb(editorEntity->GetId());
+        EXPECT_THAT(aabb.GetMin(), UnitTest::IsClose(AZ::Vector3(-25.488f, -10.16f, -11.448f)));
+        EXPECT_THAT(aabb.GetMax(), UnitTest::IsClose(AZ::Vector3(1.136f, 18.32f, 16.584f)));
+    }
+
+    TEST_F(PhysXEditorFixture, EditorShapeColliderComponent_ShapeColliderWithBoxAndTranslationOffset_CorrectEditorDynamicBodyGeometry)
+    {
+        AZ::Transform transform(AZ::Vector3(-5.0f, -1.0f, 3.0f), AZ::Quaternion(0.7f, 0.5f, -0.1f, 0.5f), 1.2f);
+        AZ::Vector3 nonUniformScale(1.5f, 1.5f, 4.0f);
+        AZ::Vector3 boxDimensions(6.0f, 4.0f, 1.0f);
+        AZ::Vector3 translationOffset(6.0f, -5.0f, -4.0f);
+        EntityPtr editorEntity =
+            CreateBoxShapeColliderEditorEntity(transform, nonUniformScale, boxDimensions, translationOffset, RigidBodyType::Dynamic);
+
+        editorEntity->Deactivate();
+        editorEntity->Activate();
+
+        AZ::Aabb aabb = GetSimulatedBodyAabb(editorEntity->GetId());
+        EXPECT_THAT(aabb.GetMin(), UnitTest::IsClose(AZ::Vector3(-20.264f, 15.68f, -6.864f)));
+        EXPECT_THAT(aabb.GetMax(), UnitTest::IsClose(AZ::Vector3(-7.592f, 26.0f, 6.672f)));
+    }
+
+    TEST_F(PhysXEditorFixture, EditorShapeColliderComponent_ShapeColliderWithBoxAndTranslationOffset_CorrectRuntimeStaticBodyGeometry)
+    {
+        AZ::Transform transform(AZ::Vector3(7.0f, 2.0f, 4.0f), AZ::Quaternion(0.4f, -0.8f, 0.4f, 0.2f), 2.5f);
+        AZ::Vector3 nonUniformScale(0.8f, 2.0f, 1.5f);
+        AZ::Vector3 boxDimensions(1.0f, 4.0f, 7.0f);
+        AZ::Vector3 translationOffset(6.0f, -1.0f, -2.0f);
+        EntityPtr editorEntity = CreateBoxShapeColliderEditorEntity(transform, nonUniformScale, boxDimensions, translationOffset);
+        EntityPtr gameEntity = CreateActiveGameEntityFromEditorEntity(editorEntity.get());
+
+        AZ::Aabb aabb = GetSimulatedBodyAabb(gameEntity->GetId());
+        EXPECT_THAT(aabb.GetMin(), UnitTest::IsClose(AZ::Vector3(-4.8f, -14.14f, 5.265f)));
+        EXPECT_THAT(aabb.GetMax(), UnitTest::IsClose(AZ::Vector3(12.4f, 15.02f, 31.895f)));
+    }
+
+    TEST_F(PhysXEditorFixture, EditorShapeColliderComponent_ShapeColliderWithBoxAndTranslationOffset_CorrectRuntimeDynamicBodyGeometry)
+    {
+        AZ::Transform transform(AZ::Vector3(4.0f, 4.0f, 2.0f), AZ::Quaternion(0.1f, 0.3f, 0.9f, 0.3f), 0.8f);
+        AZ::Vector3 nonUniformScale(2.5f, 1.0f, 2.0f);
+        AZ::Vector3 boxDimensions(4.0f, 2.0f, 7.0f);
+        AZ::Vector3 translationOffset(-2.0f, 7.0f, -1.0f);
+        EntityPtr editorEntity =
+            CreateBoxShapeColliderEditorEntity(transform, nonUniformScale, boxDimensions, translationOffset, RigidBodyType::Dynamic);
+        EntityPtr gameEntity = CreateActiveGameEntityFromEditorEntity(editorEntity.get());
+
+        AZ::Aabb aabb = GetSimulatedBodyAabb(gameEntity->GetId());
+        EXPECT_THAT(aabb.GetMin(), UnitTest::IsClose(AZ::Vector3(-1.664f, -8.352f, -0.88f)));
+        EXPECT_THAT(aabb.GetMax(), UnitTest::IsClose(AZ::Vector3(9.536f, 2.848f, 9.04f)));
+    }
+
+    TEST_F(PhysXEditorFixture, EditorShapeColliderComponent_ShapeColliderWithSphereAndTranslationOffset_CorrectEditorStaticBodyGeometry)
+    {
+        EntityPtr editorEntity = CreateSphereShapeColliderEditorEntity(
+            AZ::Transform(AZ::Vector3(4.0f, 2.0f, -2.0f), AZ::Quaternion(-0.5f, -0.5f, 0.1f, 0.7f), 3.0f),
+            1.6f,
+            AZ::Vector3(2.0f, 3.0f, -7.0f)
+        );
+
+        AZ::Aabb aabb = GetSimulatedBodyAabb(editorEntity->GetId());
+        EXPECT_THAT(aabb.GetMin(), UnitTest::IsClose(AZ::Vector3(22.12f, -7.24f, -10.4f)));
+        EXPECT_THAT(aabb.GetMax(), UnitTest::IsClose(AZ::Vector3(31.72f, 2.36f, -0.8f)));
+    }
+
+    TEST_F(PhysXEditorFixture, EditorShapeColliderComponent_ShapeColliderWithSphereAndTranslationOffset_CorrectEditorDynamicBodyGeometry)
+    {
+        EntityPtr editorEntity = CreateSphereShapeColliderEditorEntity(
+            AZ::Transform(AZ::Vector3(2.0f, -5.0f, -6.0f), AZ::Quaternion(0.7f, 0.1f, 0.7f, 0.1f), 0.4f),
+            3.5f,
+            AZ::Vector3(1.0f, 3.0f, -1.0f),
+            RigidBodyType::Dynamic);
+
+        editorEntity->Deactivate();
+        editorEntity->Activate();
+
+        AZ::Aabb aabb = GetSimulatedBodyAabb(editorEntity->GetId());
+        EXPECT_THAT(aabb.GetMin(), UnitTest::IsClose(AZ::Vector3(0.2f, -7.44f, -6.68f)));
+        EXPECT_THAT(aabb.GetMax(), UnitTest::IsClose(AZ::Vector3(3.0f, -4.64f, -3.88f)));
+    }
+
+    TEST_F(PhysXEditorFixture, EditorShapeColliderComponent_ShapeColliderWithSphereAndTranslationOffset_CorrectRuntimeStaticBodyGeometry)
+    {
+        EntityPtr editorEntity = CreateSphereShapeColliderEditorEntity(
+            AZ::Transform(AZ::Vector3(4.0f, 4.0f, -1.0f), AZ::Quaternion(0.8f, -0.2f, 0.4f, 0.4f), 2.4f),
+            2.0f,
+            AZ::Vector3(5.0f, 6.0f, -8.0f)
+        );
+
+        EntityPtr gameEntity = CreateActiveGameEntityFromEditorEntity(editorEntity.get());
+
+        AZ::Aabb aabb = GetSimulatedBodyAabb(gameEntity->GetId());
+        EXPECT_THAT(aabb.GetMin(), UnitTest::IsClose(AZ::Vector3(-12.032f, 5.92f, 17.624f)));
+        EXPECT_THAT(aabb.GetMax(), UnitTest::IsClose(AZ::Vector3(-2.432f, 15.52f, 27.224f)));
+    }
+
+    TEST_F(PhysXEditorFixture, EditorShapeColliderComponent_ShapeColliderWithSphereAndTranslationOffset_CorrectRuntimeDynamicBodyGeometry)
+    {
+        EntityPtr editorEntity = CreateSphereShapeColliderEditorEntity(
+            AZ::Transform(AZ::Vector3(2.0f, 2.0f, -5.0f), AZ::Quaternion(0.9f, 0.3f, 0.3f, 0.1f), 5.0f),
+            0.4f,
+            AZ::Vector3(4.0f, 7.0f, 3.0f),
+            RigidBodyType::Dynamic);
+
+        EntityPtr gameEntity = CreateActiveGameEntityFromEditorEntity(editorEntity.get());
+
+        AZ::Aabb aabb = GetSimulatedBodyAabb(gameEntity->GetId());
+        EXPECT_THAT(aabb.GetMin(), UnitTest::IsClose(AZ::Vector3(38.6f, -16.0f, 3.2f)));
+        EXPECT_THAT(aabb.GetMax(), UnitTest::IsClose(AZ::Vector3(42.6f, -12.0f, 7.2f)));
+    }
+
+    TEST_F(PhysXEditorFixture, EditorShapeColliderComponent_ShapeColliderWithCapsuleAndTranslationOffset_CorrectEditorStaticBodyGeometry)
+    {
+        EntityPtr editorEntity = CreateCapsuleShapeColliderEditorEntity(
+            AZ::Transform(AZ::Vector3(2.0f, 1.0f, -2.0f), AZ::Quaternion(-0.2f, -0.8f, -0.4f, 0.4f), 4.0f),
+            2.0f,
+            8.0f,
+            AZ::Vector3(2.0f, 3.0f, 5.0f)
+        );
+
+        AZ::Aabb aabb = GetSimulatedBodyAabb(editorEntity->GetId());
+        EXPECT_THAT(aabb.GetMin(), UnitTest::IsClose(AZ::Vector3(-16.56f, 9.8f, -7.92f)));
+        EXPECT_THAT(aabb.GetMax(), UnitTest::IsClose(AZ::Vector3(7.12f, 38.6f, 13.84f)));
+    }
+
+    TEST_F(PhysXEditorFixture, EditorShapeColliderComponent_ShapeColliderWithCapsuleAndTranslationOffset_CorrectEditorDynamicBodyGeometry)
+    {
+        EntityPtr editorEntity = CreateCapsuleShapeColliderEditorEntity(
+            AZ::Transform(AZ::Vector3(7.0f, -9.0f, 2.0f), AZ::Quaternion(0.7f, 0.1f, 0.7f, 0.1f), 0.2f),
+            1.0f,
+            5.0f,
+            AZ::Vector3(2.0f, 9.0f, -5.0f),
+            RigidBodyType::Dynamic);
+
+        editorEntity->Deactivate();
+        editorEntity->Activate();
+
+        AZ::Aabb aabb = GetSimulatedBodyAabb(editorEntity->GetId());
+        EXPECT_THAT(aabb.GetMin(), UnitTest::IsClose(AZ::Vector3(5.5f, -10.816f, 2.688f)));
+        EXPECT_THAT(aabb.GetMax(), UnitTest::IsClose(AZ::Vector3(6.5f, -10.416f, 3.088f)));
+    }
+
+    TEST_F(PhysXEditorFixture, EditorShapeColliderComponent_ShapeColliderWithCapsuleAndTranslationOffset_CorrectRuntimeStaticBodyGeometry)
+    {
+        EntityPtr editorEntity = CreateCapsuleShapeColliderEditorEntity(
+            AZ::Transform(AZ::Vector3(-4.0f, -3.0f, -1.0f), AZ::Quaternion(0.5f, -0.7f, -0.1f, 0.5f), 0.8f),
+            2.0f,
+            11.0f,
+            AZ::Vector3(4.0f, 1.0f, -3.0f)
+        );
+
+        EntityPtr gameEntity = CreateActiveGameEntityFromEditorEntity(editorEntity.get());
+
+        AZ::Aabb aabb = GetSimulatedBodyAabb(gameEntity->GetId());
+        EXPECT_THAT(aabb.GetMin(), UnitTest::IsClose(AZ::Vector3(-6.4f, -6.92f, -0.36f)));
+        EXPECT_THAT(aabb.GetMax(), UnitTest::IsClose(AZ::Vector3(1.28f, -1.704f, 5.528f)));
+    }
+
+    TEST_F(PhysXEditorFixture, EditorShapeColliderComponent_ShapeColliderWithCapsuleAndTranslationOffset_CorrectRuntimeDynamicBodyGeometry)
+    {
+        EntityPtr editorEntity = CreateCapsuleShapeColliderEditorEntity(
+            AZ::Transform(AZ::Vector3(7.0f, 6.0f, -3.0f), AZ::Quaternion(-0.3f, -0.1f, -0.3f, 0.9f), 6.0f),
+            0.4f,
+            3.0f,
+            AZ::Vector3(2.0f, -7.0f, 7.0f),
+            RigidBodyType::Dynamic);
+
+        EntityPtr gameEntity = CreateActiveGameEntityFromEditorEntity(editorEntity.get());
+
+        AZ::Aabb aabb = GetSimulatedBodyAabb(gameEntity->GetId());
+        EXPECT_THAT(aabb.GetMin(), UnitTest::IsClose(AZ::Vector3(-11.0f, -7.8f, 47.4f)));
+        EXPECT_THAT(aabb.GetMax(), UnitTest::IsClose(AZ::Vector3(-6.2f, 4.92f, 62.76f)));
     }
 
     void SetPolygonPrismVertices(AZ::EntityId entityId, const AZStd::vector<AZ::Vector2>& vertices)
@@ -178,6 +379,7 @@ namespace PhysXEditorTests
         // create an editor entity with a shape collider component and a polygon prism shape component
         EntityPtr editorEntity = CreateInactiveEditorEntity("ShapeColliderComponentEditorEntity");
         editorEntity->CreateComponent<PhysX::EditorShapeColliderComponent>();
+        editorEntity->CreateComponent<PhysX::EditorStaticRigidBodyComponent>();
         editorEntity->CreateComponent(LmbrCentral::EditorPolygonPrismShapeComponentTypeId);
 
         // suppress the shape collider error that will be raised because the polygon prism vertices have not been set yet
@@ -221,6 +423,7 @@ namespace PhysXEditorTests
         // create an editor entity with a shape collider component and a polygon prism shape component
         EntityPtr editorEntity = CreateInactiveEditorEntity("ShapeColliderComponentEditorEntity");
         editorEntity->CreateComponent<PhysX::EditorShapeColliderComponent>();
+        editorEntity->CreateComponent<PhysX::EditorStaticRigidBodyComponent>();
         editorEntity->CreateComponent(LmbrCentral::EditorPolygonPrismShapeComponentTypeId);
 
         // add a non-uniform scale component
@@ -257,6 +460,7 @@ namespace PhysXEditorTests
         // create an editor entity with a shape collider component and a cylinder shape component
         EntityPtr editorEntity = CreateInactiveEditorEntity("ShapeColliderComponentEditorEntity");
         editorEntity->CreateComponent<PhysX::EditorShapeColliderComponent>();
+        editorEntity->CreateComponent<PhysX::EditorStaticRigidBodyComponent>();
         editorEntity->CreateComponent(LmbrCentral::EditorCylinderShapeComponentTypeId);
         editorEntity->Activate();
 
@@ -272,6 +476,7 @@ namespace PhysXEditorTests
         // create an editor entity with a shape collider component and a cylinder shape component
         EntityPtr editorEntity = CreateInactiveEditorEntity("ShapeColliderComponentEditorEntity");
         editorEntity->CreateComponent<PhysX::EditorShapeColliderComponent>();
+        editorEntity->CreateComponent<PhysX::EditorStaticRigidBodyComponent>();
         editorEntity->CreateComponent(LmbrCentral::EditorCylinderShapeComponentTypeId);
         editorEntity->Activate();
         
@@ -344,6 +549,7 @@ namespace PhysXEditorTests
         // create an editor entity with a shape collider component and a cylinder shape component
         EntityPtr editorEntity = CreateInactiveEditorEntity("ShapeColliderComponentEditorEntity");
         editorEntity->CreateComponent<PhysX::EditorShapeColliderComponent>();
+        editorEntity->CreateComponent<PhysX::EditorStaticRigidBodyComponent>();
         editorEntity->CreateComponent(LmbrCentral::EditorCylinderShapeComponentTypeId);
         editorEntity->Activate();
 
@@ -432,6 +638,7 @@ namespace PhysXEditorTests
         // create an editor entity with a shape collider component and a box shape component
         EntityPtr editorEntity = CreateInactiveEditorEntity("ShapeColliderComponentEditorEntity");
         editorEntity->CreateComponent<PhysX::EditorShapeColliderComponent>();
+        editorEntity->CreateComponent<PhysX::EditorStaticRigidBodyComponent>();
         editorEntity->CreateComponent(LmbrCentral::EditorBoxShapeComponentTypeId);
         editorEntity->Activate();
         AZ::EntityId editorEntityId = editorEntity->GetId();
@@ -526,6 +733,7 @@ namespace PhysXEditorTests
         SetTrigger(shapeColliderComponent, true);
         forceRegionEditorEntity->CreateComponent(LmbrCentral::EditorPolygonPrismShapeComponentTypeId);
         forceRegionEditorEntity->CreateComponent<PhysX::EditorForceRegionComponent>();
+        forceRegionEditorEntity->CreateComponent<PhysX::EditorStaticRigidBodyComponent>();
 
         // suppress the shape collider error that will be raised because the polygon prism vertices have not been set yet
         UnitTest::ErrorHandler polygonPrismErrorHandler("Invalid polygon prism");
@@ -616,6 +824,7 @@ namespace PhysXEditorTests
         auto* shapeColliderComponent = editorEntity->CreateComponent<PhysX::EditorShapeColliderComponent>();
         SetSingleSided(shapeColliderComponent, singleSided);
         editorEntity->CreateComponent<AzToolsFramework::Components::EditorNonUniformScaleComponent>();
+        editorEntity->CreateComponent<PhysX::EditorStaticRigidBodyComponent>();
         const auto entityId = editorEntity->GetId();
 
         editorEntity->Activate();
@@ -646,6 +855,7 @@ namespace PhysXEditorTests
         auto* boxShapeComponent = editorEntity->CreateComponent(LmbrCentral::EditorBoxShapeComponentTypeId);
         auto* shapeColliderComponent = editorEntity->CreateComponent<PhysX::EditorShapeColliderComponent>();
         SetTrigger(shapeColliderComponent, initialTriggerSetting);
+        editorEntity->CreateComponent<PhysX::EditorStaticRigidBodyComponent>();
         editorEntity->Activate();
 
         // the trigger setting should be what it was set to
@@ -677,31 +887,34 @@ namespace PhysXEditorTests
     {
         bool initialSingleSidedSetting = GetParam();
 
-        // create an editor entity without a rigid body (that means both single-sided and double-sided quads are valid)
+        // create an editor entity with a static rigid body (that means both single-sided and double-sided quads are valid)
         EntityPtr editorEntity = CreateInactiveEditorEntity("QuadEntity");
         editorEntity->CreateComponent(LmbrCentral::EditorQuadShapeComponentTypeId);
         auto* shapeColliderComponent = editorEntity->CreateComponent<PhysX::EditorShapeColliderComponent>();
         SetSingleSided(shapeColliderComponent, initialSingleSidedSetting);
+        auto* staticRigidBodyComponent = editorEntity->CreateComponent<PhysX::EditorStaticRigidBodyComponent>();
         editorEntity->Activate();
 
         // verify that the single sided setting matches the initial value
         EXPECT_EQ(IsSingleSided(shapeColliderComponent), initialSingleSidedSetting);
 
-        // add an editor rigid body component (this should mean single-sided quads are not supported)
+        // add a dynamic rigid body component (this should mean single-sided quads are not supported)
         editorEntity->Deactivate();
-        auto rigidBodyComponent = editorEntity->CreateComponent<PhysX::EditorRigidBodyComponent>();
+        editorEntity->RemoveComponent(staticRigidBodyComponent);
+        auto* rigidBodyComponent = editorEntity->CreateComponent<PhysX::EditorRigidBodyComponent>();
         editorEntity->Activate();
 
         EXPECT_FALSE(IsSingleSided(shapeColliderComponent));
 
-        // remove the editor rigid body component (the previous single-sided setting should be restored)
+        // add back the the static rigid body (the previous single-sided setting should be restored)
         editorEntity->Deactivate();
         editorEntity->RemoveComponent(rigidBodyComponent);
+        editorEntity->AddComponent(staticRigidBodyComponent);
         editorEntity->Activate();
 
         EXPECT_EQ(IsSingleSided(shapeColliderComponent), initialSingleSidedSetting);
 
-        // the rigid body component is no longer attached to the entity so won't be automatically cleared up
+        // the dynamic rigid body component is no longer attached to the entity so won't be automatically cleared up
         delete rigidBodyComponent;
     }
 
@@ -714,6 +927,7 @@ namespace PhysXEditorTests
         editorQuadEntity->CreateComponent(LmbrCentral::EditorQuadShapeComponentTypeId);
         auto* shapeColliderComponent = editorQuadEntity->CreateComponent<PhysX::EditorShapeColliderComponent>();
         SetSingleSided(shapeColliderComponent, true);
+        editorQuadEntity->CreateComponent<PhysX::EditorStaticRigidBodyComponent>();
         editorQuadEntity->Activate();
         LmbrCentral::QuadShapeComponentRequestBus::Event(editorQuadEntity->GetId(), &LmbrCentral::QuadShapeComponentRequests::SetQuadHeight, 10.0f);
         LmbrCentral::QuadShapeComponentRequestBus::Event(editorQuadEntity->GetId(), &LmbrCentral::QuadShapeComponentRequests::SetQuadWidth, 10.0f);

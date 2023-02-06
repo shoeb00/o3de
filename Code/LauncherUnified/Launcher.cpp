@@ -29,7 +29,6 @@
 #include <AzGameFramework/Application/GameApplication.h>
 
 #include <ISystem.h>
-#include <LegacyAllocator.h>
 
 #include <Launcher_Traits_Platform.h>
 
@@ -58,7 +57,7 @@ namespace
         AzFramework::NativeWindowHandle windowHandle = nullptr;
         AzFramework::WindowSystemRequestBus::BroadcastResult(windowHandle, &AzFramework::WindowSystemRequestBus::Events::GetDefaultWindowHandle);
         AzFramework::WindowSize newSize = AzFramework::WindowSize(aznumeric_cast<int32_t>(value.GetX()), aznumeric_cast<int32_t>(value.GetY()));
-        AzFramework::WindowRequestBus::Broadcast(&AzFramework::WindowRequestBus::Events::ResizeClientArea, newSize);
+        AzFramework::WindowRequestBus::Broadcast(&AzFramework::WindowRequestBus::Events::ResizeClientArea, newSize, AzFramework::WindowPosOptions());
     }
 
     AZ_CVAR(AZ::Vector2, r_viewportPos, AZ::Vector2::CreateZero(), CVar_OnViewportPosition, AZ::ConsoleFunctorFlags::DontReplicate,
@@ -252,6 +251,8 @@ namespace O3DELauncher
             };
             AZ::Data::AssetCatalogRequestBus::Broadcast(AZStd::move(LoadCatalog));
 
+            AZ_TracePrintf("Launcher", "CriticalAssetsCompiled\n");
+
             // Broadcast that critical assets are ready
             AZ::ComponentApplicationLifecycle::SignalEvent(*settingsRegistry, "CriticalAssetsCompiled", R"({})");
         }
@@ -432,23 +433,12 @@ namespace O3DELauncher
                 pathToAssets.c_str());
         }
 
-        CryAllocatorsRAII cryAllocatorsRAII;
-
         // System Init Params ("Legacy" Open 3D Engine)
         SSystemInitParams systemInitParams;
         memset(&systemInitParams, 0, sizeof(SSystemInitParams));
 
         {
             AzGameFramework::GameApplication::StartupParameters gameApplicationStartupParams;
-
-            if (mainInfo.m_allocator)
-            {
-                gameApplicationStartupParams.m_allocator = mainInfo.m_allocator;
-            }
-            else if (AZ::AllocatorInstance<AZ::OSAllocator>::IsReady())
-            {
-                gameApplicationStartupParams.m_allocator = &AZ::AllocatorInstance<AZ::OSAllocator>::Get();
-            }
 
         #if defined(AZ_MONOLITHIC_BUILD)
             gameApplicationStartupParams.m_createStaticModulesCallback = CreateStaticModules;
@@ -472,7 +462,6 @@ namespace O3DELauncher
                 }
             }
 
-            AZ_Assert(AZ::AllocatorInstance<AZ::SystemAllocator>::IsReady(), "System allocator was not created or creation failed.");
             //Initialize the Debug trace instance to create necessary environment variables
             AZ::Debug::Trace::Instance().Init();
 
@@ -581,6 +570,8 @@ namespace O3DELauncher
                 ExecuteConsoleCommandFile(gameApplication);
 
                 gEnv->pSystem->ExecuteCommandLine(false);
+
+                AZ::ComponentApplicationLifecycle::SignalEvent(*settingsRegistry, "LegacyCommandLineProcessed", R"({})");
 
                 // Run the main loop
                 RunMainLoop(gameApplication);

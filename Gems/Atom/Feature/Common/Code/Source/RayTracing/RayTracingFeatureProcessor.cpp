@@ -11,6 +11,7 @@
 #include <Atom/RHI/Factory.h>
 #include <Atom/RHI/RHISystemInterface.h>
 #include <Atom/RPI.Public/Scene.h>
+#include <Atom/RPI.Public/Pass/PassFilter.h>
 #include <Atom/RPI.Public/Shader/ShaderResourceGroup.h>
 #include <Atom/RPI.Reflect/Asset/AssetUtils.h>
 #include <Atom/Feature/ImageBasedLights/ImageBasedLightFeatureProcessor.h>
@@ -75,6 +76,13 @@ namespace AZ
             const AZ::Name rayTracingMaterialSrgName("RayTracingMaterialSrg");
             m_rayTracingMaterialSrg = RPI::ShaderResourceGroup::Create(m_rayTracingSrgAsset, Name("RayTracingMaterialSrg"));
             AZ_Assert(m_rayTracingMaterialSrg, "Failed to create RayTracingMaterialSrg");
+
+            EnableSceneNotification();
+        }
+
+        void RayTracingFeatureProcessor::Deactivate()
+        {
+            DisableSceneNotification();
         }
 
         void RayTracingFeatureProcessor::AddMesh(const AZ::Uuid& uuid, const AZ::Data::AssetId& assetId, const SubMeshVector& subMeshes, const AZ::Transform& transform, const AZ::Vector3& nonUniformScale)
@@ -220,6 +228,7 @@ namespace AZ
 
                 // add material textures
                 subMesh.m_baseColor.StoreToFloat4(materialInfo.m_baseColor.data());
+                subMesh.m_emissiveColor.StoreToFloat4(materialInfo.m_emissiveColor.data());
                 materialInfo.m_metallicFactor = subMesh.m_metallicFactor;
                 materialInfo.m_roughnessFactor = subMesh.m_roughnessFactor;
                 materialInfo.m_textureFlags = subMesh.m_textureFlags;
@@ -229,7 +238,8 @@ namespace AZ
                     m_materialTextures.AddResource(subMesh.m_baseColorImageView.get()),
                     m_materialTextures.AddResource(subMesh.m_normalImageView.get()),
                     m_materialTextures.AddResource(subMesh.m_metallicImageView.get()),
-                    m_materialTextures.AddResource(subMesh.m_roughnessImageView.get())
+                    m_materialTextures.AddResource(subMesh.m_roughnessImageView.get()),
+                    m_materialTextures.AddResource(subMesh.m_emissiveImageView.get())
                 });
             }
 
@@ -290,7 +300,8 @@ namespace AZ
                     m_materialTextures.RemoveResource(subMesh.m_normalImageView.get());
                     m_materialTextures.RemoveResource(subMesh.m_metallicImageView.get());
                     m_materialTextures.RemoveResource(subMesh.m_roughnessImageView.get());
-                    
+                    m_materialTextures.RemoveResource(subMesh.m_emissiveImageView.get());
+
                     if (globalIndex < m_subMeshes.size() - 1)
                     {
                         // the subMesh we're removing is in the middle of the global lists, remove by swapping the last element to its position in the list
@@ -664,6 +675,29 @@ namespace AZ
             RHI::ShaderInputImageUnboundedArrayIndex textureUnboundedArrayIndex = srgLayout->FindShaderInputImageUnboundedArrayIndex(AZ::Name("m_materialTextures"));
             m_rayTracingMaterialSrg->SetImageViewUnboundedArray(textureUnboundedArrayIndex, m_materialTextures.GetResourceList());
             m_rayTracingMaterialSrg->Compile();
+        }
+
+        void RayTracingFeatureProcessor::OnRenderPipelineChanged([[maybe_unused]] RPI::RenderPipeline* renderPipeline, RPI::SceneNotification::RenderPipelineChangeType changeType)
+        {
+            if (!m_rayTracingEnabled)
+            {
+                return;
+            }
+
+            // only enable the RayTracingAccelerationStructurePass on the first pipeline in this scene, this will avoid multiple updates to the same AS
+            bool enabled = true;
+            if (changeType == RPI::SceneNotification::RenderPipelineChangeType::Added
+                || changeType == RPI::SceneNotification::RenderPipelineChangeType::Removed)
+            {
+                AZ::RPI::PassFilter passFilter = AZ::RPI::PassFilter::CreateWithPassName(AZ::Name("RayTracingAccelerationStructurePass"), GetParentScene());
+                AZ::RPI::PassSystemInterface::Get()->ForEachPass(passFilter, [&enabled](AZ::RPI::Pass* pass) -> AZ::RPI::PassFilterExecutionFlow
+                    {
+                        pass->SetEnabled(enabled);
+                        enabled = false;
+
+                        return AZ::RPI::PassFilterExecutionFlow::ContinueVisitingPasses;
+                    });
+            }
         }
     }        
 }

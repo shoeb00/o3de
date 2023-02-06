@@ -142,7 +142,7 @@ namespace AZ
         struct NotifyEventArgs
         {
             AZStd::string_view m_jsonKeyPath;
-            Type m_type = Type::NoType;
+            SettingsType m_type;
             AZStd::string_view m_mergeFilePath;
         };
         using NotifyCallback = AZStd::function<void(const NotifyEventArgs& notifierArgs)>;
@@ -161,8 +161,28 @@ namespace AZ
         using PreMergeEventHandler = typename PreMergeEvent::Handler;
         using PostMergeEventHandler = typename PostMergeEvent::Handler;
 
+        //! Stores the data about the settings field being visited
+        //! The full key path to the settings field is supplied, along with the settings type
+        struct VisitArgs
+        {
+            VisitArgs(const AZ::SettingsRegistryInterface& registry)
+                : m_registry(registry)
+            {}
+
+            //! Full key path to the settings field being visited. Includes field name
+            //! i.e "/O3DE/Settings/FieldName"
+            AZStd::string_view m_jsonKeyPath;
+            //! The specific field name being visited. The field name is parented to an object or array
+            //! i.e "FieldName"
+            AZStd::string_view m_fieldName;
+            //! The type of the setting stored within the registry.
+            SettingsType m_type;
+            //! Reference to the Settings Registry instance performing the visit operations
+            const AZ::SettingsRegistryInterface& m_registry;
+        };
+
         using VisitorCallback =
-            AZStd::function<VisitResponse(AZStd::string_view path, AZStd::string_view valueName, VisitAction action, Type type)>;
+            AZStd::function<VisitResponse(const VisitArgs&, VisitAction action)>;
         //! Base class for the visitor class during traversal over the Settings Registry. The type-agnostic function is always
         //! called and, if applicable, the overloaded functions with the appropriate values.
         class Visitor
@@ -170,18 +190,18 @@ namespace AZ
         public:
             virtual ~Visitor() = 0;
 
-            virtual VisitResponse Traverse(AZStd::string_view path, AZStd::string_view valueName, VisitAction action, Type type)
-            { AZ_UNUSED(path); AZ_UNUSED(valueName); AZ_UNUSED(action); AZ_UNUSED(type); return VisitResponse::Continue; }
-            virtual void Visit(AZStd::string_view path, AZStd::string_view valueName, Type type, bool value)
-            { AZ_UNUSED(path); AZ_UNUSED(valueName); AZ_UNUSED(type); AZ_UNUSED(value); }
-            virtual void Visit(AZStd::string_view path, AZStd::string_view valueName, Type type, s64 value)
-            { AZ_UNUSED(path); AZ_UNUSED(valueName); AZ_UNUSED(type); AZ_UNUSED(value); }
-            virtual void Visit(AZStd::string_view path, AZStd::string_view valueName, Type type, u64 value)
-            { AZ_UNUSED(path); AZ_UNUSED(valueName); AZ_UNUSED(type); AZ_UNUSED(value); }
-            virtual void Visit(AZStd::string_view path, AZStd::string_view valueName, Type type, double value)
-            { AZ_UNUSED(path); AZ_UNUSED(valueName); AZ_UNUSED(type); AZ_UNUSED(value); }
-            virtual void Visit(AZStd::string_view path, AZStd::string_view valueName, Type type, AZStd::string_view value)
-            { AZ_UNUSED(path); AZ_UNUSED(valueName); AZ_UNUSED(type); AZ_UNUSED(value); }
+            virtual VisitResponse Traverse([[maybe_unused]] const VisitArgs& visitArgs, [[maybe_unused]] VisitAction action)
+            { return VisitResponse::Continue; }
+            virtual void Visit([[maybe_unused]] const VisitArgs& visitArgs, [[maybe_unused]] bool value)
+            {}
+            virtual void Visit([[maybe_unused]] const VisitArgs& visitArgs, [[maybe_unused]] s64 value)
+            {}
+            virtual void Visit([[maybe_unused]] const VisitArgs& visitArgs, [[maybe_unused]] u64 value)
+            {}
+            virtual void Visit([[maybe_unused]] const VisitArgs& visitArgs, [[maybe_unused]] double value)
+            {}
+            virtual void Visit([[maybe_unused]] const VisitArgs& visitArgs, [[maybe_unused]] AZStd::string_view value)
+            {}
         };
 
         SettingsRegistryInterface() = default;
@@ -189,7 +209,7 @@ namespace AZ
         virtual ~SettingsRegistryInterface() = default;
 
         //! Returns the type of an entry in the Settings Registry or Type::None if there's no value or the path is invalid.
-        virtual SettingsType GetType(AZStd::string_view path) const = 0;
+        [[nodiscard]] virtual SettingsType GetType(AZStd::string_view path) const = 0;
         //! Traverses over the entries in the Settings Registry. Use this version to retrieve the values of entries as well.
         //! @param visitor An instance of a class derived from Visitor that will repeatedly be called as entries are encountered.
         //! @param path An offset at which traversal should start.
@@ -227,7 +247,7 @@ namespace AZ
         //! Register a post-merge hahndler with the PostMergeEvent.
         //! The handler will be called after a file is merged.
         //! @param handler The handler to register with the PostmergeEVent.
-        virtual void RegisterPostMergeEvent(PostMergeEventHandler& hanlder) = 0;
+        virtual void RegisterPostMergeEvent(PostMergeEventHandler& handler) = 0;
 
         //! Gets the boolean value at the provided path.
         //! @param result The target to write the result to.
@@ -258,7 +278,7 @@ namespace AZ
         //! @param resultTypeId The type id of the target that's being written to.
         //! @param path The path to the value.
         //! @return Whether or not the value was stored. An invalid path will return false;
-        virtual bool GetObject(void* result, AZ::Uuid resultTypeID, AZStd::string_view path) const = 0;
+        virtual bool GetObject(void* result, AZ::Uuid resultTypeId, AZStd::string_view path) const = 0;
         //! Gets the json object value at the provided path serialized to the target struct/class. Classes retrieved
         //! through this call needs to be registered with the Serialize Context.
         //! @param result The target to write the result to.
@@ -302,13 +322,13 @@ namespace AZ
         //! @param value The new value to store.
         //! @param valueTypeId The type id of the target that's being stored.
         //! @return Whether or not the value was stored. An invalid path will return false;
-        virtual bool SetObject(AZStd::string_view path, const void* value, AZ::Uuid valueTypeID) = 0;
-        template<typename T>
+        virtual bool SetObject(AZStd::string_view path, const void* value, AZ::Uuid valueTypeId) = 0;
         //! Sets the value at the provided path to the serialized version of the provided struct/class.
         //! Classes used for this call need to be registered with the Serialize Context.
         //! @param path The path to the value.
         //! @param value The new value to store.
         //! @return Whether or not the value was stored. An invalid path will return false;
+        template<typename T>
         bool SetObject(AZStd::string_view path, const T& value) { return SetObject(path, &value, azrtti_typeid(value)); }
 
         //! Remove the value at the provided path 

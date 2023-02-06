@@ -75,16 +75,26 @@ namespace AzToolsFramework
         ActionManagerGetterResult GetWidgetActionName(const AZStd::string& widgetActionIdentifier) override;
         ActionManagerOperationResult SetWidgetActionName(const AZStd::string& widgetActionIdentifier, const AZStd::string& name) override;
         ActionManagerGetterResult GetWidgetActionCategory(const AZStd::string& widgetActionIdentifier) override;
-        ActionManagerOperationResult SetWidgetActionCategory(const AZStd::string& widgetActionIdentifier, const AZStd::string& category) override;
+        ActionManagerOperationResult SetWidgetActionCategory(
+            const AZStd::string& widgetActionIdentifier, const AZStd::string& category) override;
+        ActionManagerOperationResult RegisterActionContextMode(
+            const AZStd::string& actionContextIdentifier, const AZStd::string& modeIdentifier) override;
+        ActionManagerOperationResult AssignModeToAction(
+            const AZStd::string& modeIdentifier, const AZStd::string& actionIdentifier) override;
+        ActionManagerBooleanResult IsActionActiveInCurrentMode(const AZStd::string& actionIdentifier) const override;
+        ActionManagerOperationResult SetActiveActionContextMode(
+            const AZStd::string& actionContextIdentifier, const AZStd::string& modeIdentifier) override;
+        ActionManagerGetterResult GetActiveActionContextMode(const AZStd::string& actionContextIdentifier) const override;
 
         // ActionManagerInternalInterface overrides ...
         QAction* GetAction(const AZStd::string& actionIdentifier) override;
         const QAction* GetActionConst(const AZStd::string& actionIdentifier) const override;
         EditorAction* GetEditorAction(const AZStd::string& actionIdentifier) override;
         const EditorAction* GetEditorActionConst(const AZStd::string& actionIdentifier) const override;
-        bool GetHideFromMenusWhenDisabled(const AZStd::string& actionIdentifier) const override;
-        bool GetHideFromToolBarsWhenDisabled(const AZStd::string& actionIdentifier) const override;
+        ActionVisibility GetActionMenuVisibility(const AZStd::string& actionIdentifier) const override;
+        ActionVisibility GetActionToolBarVisibility(const AZStd::string& actionIdentifier) const override;
         QWidget* GenerateWidgetFromWidgetAction(const AZStd::string& widgetActionIdentifier) override;
+        void UpdateAllActionsInActionContext(const AZStd::string& actionContextIdentifier) override;
 
         void ClearActionContextMap();
 

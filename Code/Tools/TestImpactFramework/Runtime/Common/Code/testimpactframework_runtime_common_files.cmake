@@ -11,6 +11,7 @@ set(FILES
     Include/Static/Artifact/Factory/TestImpactTestEnumerationSuiteFactory.h
     Include/Static/Artifact/Factory/TestImpactTestRunSuiteFactory.h
     Include/Static/Artifact/Factory/TestImpactModuleCoverageFactory.h
+    Include/Static/Artifact/Factory/TestImpactTestTargetMetaMapFactoryUtils.h
     Include/Static/Artifact/Static/TestImpactTestSuiteMeta.h
     Include/Static/Artifact/Static/TestImpactTestTargetMeta.h
     Include/Static/Artifact/Static/TestImpactTargetDescriptor.h
@@ -66,13 +67,15 @@ set(FILES
     Include/Static/TestEngine/Common/Enumeration/TestImpactTestEngineEnumeration.h
     Include/Static/TestEngine/Common/Run/TestImpactTestEngineRegularRun.h
     Include/Static/TestEngine/Common/Run/TestImpactTestEngineInstrumentedRun.h
-    Include/Static/TestImpactTestTargetExclusionList.h
+    Include/Static/TestImpactRuntime.h
     Include/Static/TestImpactRuntimeUtils.cpp
     Include/Static/TestImpactRuntimeUtils.h
+    Include/Static/TestImpactTestTargetExclusionList.h
     Source/Artifact/Factory/TestImpactTestEnumerationSuiteFactory.cpp
     Source/Artifact/Factory/TestImpactTestRunSuiteFactory.cpp
     Source/Artifact/Factory/TestImpactModuleCoverageFactory.cpp
     Source/Artifact/Factory/TestImpactTargetDescriptorFactory.cpp
+    Source/Artifact/Factory/TestImpactTestTargetMetaMapFactoryUtils.cpp
     Source/Process/TestImpactProcess.cpp
     Source/Process/TestImpactProcessInfo.cpp
     Source/Process/JobRunner/TestImpactProcessJobMeta.cpp

@@ -16,7 +16,6 @@
 #include "CryPath.h"
 
 #include <CryCommon/LoadScreenBus.h>
-#include <CryCommon/StaticInstance.h>
 
 #include <AzCore/Console/ILogger.h>
 #include <AzCore/Time/ITime.h>
@@ -149,8 +148,7 @@ struct SLevelNameAutoComplete
     virtual int GetCount() const { return static_cast<int>(levels.size()); };
     virtual const char* GetValue(int nIndex) const { return levels[nIndex].c_str(); };
 };
-// definition and declaration must be separated for devirtualization
-static StaticInstance<SLevelNameAutoComplete, AZStd::no_destruct<SLevelNameAutoComplete>> g_LevelNameAutoComplete;
+static SLevelNameAutoComplete g_LevelNameAutoComplete;
 
 //------------------------------------------------------------------------
 CLevelSystem::CLevelSystem(ISystem* pSystem, const char* levelsFolder)
@@ -171,7 +169,7 @@ CLevelSystem::CLevelSystem(ISystem* pSystem, const char* levelsFolder)
 
     m_nLoadedLevelsCount = 0;
 
-    gEnv->pConsole->RegisterAutoComplete("LoadLevel", &(*g_LevelNameAutoComplete));
+    gEnv->pConsole->RegisterAutoComplete("LoadLevel", &g_LevelNameAutoComplete);
 
     AZ_Assert(gEnv && gEnv->pCryPak, "gEnv and CryPak must be initialized for loading levels.");
     if (!gEnv || !gEnv->pCryPak)
@@ -201,6 +199,9 @@ CLevelSystem::CLevelSystem(ISystem* pSystem, const char* levelsFolder)
         });
         m_levelPackCloseHandler.Connect(*levelPakCloseEvent);
     }
+
+    AZ_Error("LevelSystem", AzFramework::LevelSystemLifecycleInterface::Get() == this,
+        "Failed to register the LevelSystem with the LevelSystemLifecycleInterface.");
 }
 
 //------------------------------------------------------------------------
@@ -222,10 +223,10 @@ void CLevelSystem::Rescan(const char* levelsFolder)
     m_levelInfos.reserve(64);
     ScanFolder(0, false);
 
-    g_LevelNameAutoComplete->levels.clear();
-    for (int i = 0; i < (int)m_levelInfos.size(); i++)
+    g_LevelNameAutoComplete.levels.clear();
+    for (const CLevelInfo& levelInfo : m_levelInfos)
     {
-        g_LevelNameAutoComplete->levels.push_back(AZStd::string(PathUtil::GetFileName(m_levelInfos[i].GetName()).c_str()));
+        g_LevelNameAutoComplete.levels.emplace_back(AZ::IO::PathView(levelInfo.GetName()).Stem().Native());
     }
 }
 
@@ -680,6 +681,9 @@ void CLevelSystem::PrepareNextLevel(const char* levelName)
     {
         (*it)->OnPrepareNextLevel(pLevelInfo->GetName());
     }
+
+    AzFramework::LevelSystemLifecycleNotificationBus::Broadcast(
+        &AzFramework::LevelSystemLifecycleNotifications::OnPrepareNextLevel, levelName);
 }
 
 //------------------------------------------------------------------------
@@ -689,6 +693,9 @@ void CLevelSystem::OnLevelNotFound(const char* levelName)
     {
         (*it)->OnLevelNotFound(levelName);
     }
+
+    AzFramework::LevelSystemLifecycleNotificationBus::Broadcast(
+        &AzFramework::LevelSystemLifecycleNotifications::OnLevelNotFound, levelName);
 }
 
 //------------------------------------------------------------------------
@@ -708,6 +715,9 @@ void CLevelSystem::OnLoadingStart(const char* levelName)
     {
         (*it)->OnLoadingStart(levelName);
     }
+
+    AzFramework::LevelSystemLifecycleNotificationBus::Broadcast(
+        &AzFramework::LevelSystemLifecycleNotifications::OnLoadingStart, levelName);
 }
 
 //------------------------------------------------------------------------
@@ -724,6 +734,9 @@ void CLevelSystem::OnLoadingError(const char* levelName, const char* error)
     {
         (*it)->OnLoadingError(levelName, error);
     }
+
+    AzFramework::LevelSystemLifecycleNotificationBus::Broadcast(
+        &AzFramework::LevelSystemLifecycleNotifications::OnLoadingError, levelName, error);
 
     ((CLevelInfo*)pLevelInfo)->CloseLevelPak();
 }
@@ -748,6 +761,9 @@ void CLevelSystem::OnLoadingComplete(const char* levelName)
         (*it)->OnLoadingComplete(levelName);
     }
 
+    AzFramework::LevelSystemLifecycleNotificationBus::Broadcast(
+        &AzFramework::LevelSystemLifecycleNotifications::OnLoadingComplete, levelName);
+
 #if AZ_LOADSCREENCOMPONENT_ENABLED
     EBUS_EVENT(LoadScreenBus, Stop);
 #endif // if AZ_LOADSCREENCOMPONENT_ENABLED
@@ -760,6 +776,9 @@ void CLevelSystem::OnLoadingProgress(const char* levelName, int progressAmount)
     {
         (*it)->OnLoadingProgress(levelName, progressAmount);
     }
+
+    AzFramework::LevelSystemLifecycleNotificationBus::Broadcast(
+        &AzFramework::LevelSystemLifecycleNotifications::OnLoadingProgress, levelName, progressAmount);
 }
 
 //------------------------------------------------------------------------
@@ -769,6 +788,9 @@ void CLevelSystem::OnUnloadComplete(const char* levelName)
     {
         (*it)->OnUnloadComplete(levelName);
     }
+
+    AzFramework::LevelSystemLifecycleNotificationBus::Broadcast(
+        &AzFramework::LevelSystemLifecycleNotifications::OnUnloadComplete, levelName);
 }
 
 //////////////////////////////////////////////////////////////////////////

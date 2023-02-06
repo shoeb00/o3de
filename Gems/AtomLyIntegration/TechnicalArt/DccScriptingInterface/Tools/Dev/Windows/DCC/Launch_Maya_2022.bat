@@ -49,7 +49,7 @@ SET PATH=%MAYA_BIN_PATH%;%DCCSI_PY_IDE%;%DCCSI_PY_DEFAULT%;%PATH%
 set "PATH_DCCSI_PYTHON=%PATH_DCCSIG%\3rdParty\Python"
 echo     PATH_DCCSI_PYTHON = %PATH_DCCSI_PYTHON%
 
-:: add access to a Lib location that matches the py version (example: 3.7.x)
+:: add access to a Lib location that matches the py version (example: 3.10.x)
 :: switch this for other python versions like maya (2.7.x)
 IF "%PATH_DCCSI_PYTHON_LIB%"=="" (set "PATH_DCCSI_PYTHON_LIB=%PATH_DCCSI_PYTHON%\Lib\%DCCSI_PY_VERSION_MAJOR%.x\%DCCSI_PY_VERSION_MAJOR%.%DCCSI_PY_VERSION_MINOR%.x\site-packages")
 echo     PATH_DCCSI_PYTHON_LIB = %PATH_DCCSI_PYTHON_LIB%
@@ -58,7 +58,7 @@ echo     PATH_DCCSI_PYTHON_LIB = %PATH_DCCSI_PYTHON_LIB%
 SET PATH=%MAYA_BIN_PATH%;%PATH%
 
 :: add all python related paths to PYTHONPATH for package imports
-set PYTHONPATH=%DCCSI_MAYA_SCRIPT_PATH%;%PATH_DCCSIG%;%PATH_DCCSI_PYTHON_LIB%;%PYTHONPATH%
+set PYTHONPATH=%DCCSI_MAYA_SCRIPT_PATH%;%PATH_O3DE_TECHART_GEMS%;%PATH_DCCSIG%;%PATH_DCCSI_PYTHON_LIB%;%PYTHONPATH%
 
 :: if the user has set up a custom env call it
 IF EXIST "%~dp0..\Env_Dev.bat" CALL %~dp0..\Env_Dev.bat

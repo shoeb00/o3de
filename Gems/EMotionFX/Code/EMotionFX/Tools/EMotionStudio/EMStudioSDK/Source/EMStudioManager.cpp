@@ -67,8 +67,6 @@ namespace EMStudio
 
         m_app = app;
 
-        AZ::AllocatorInstance<UIAllocator>::Create();
-        
         AZ::SerializeContext* serializeContext = nullptr;
         AZ::ComponentApplicationBus::BroadcastResult(serializeContext, &AZ::ComponentApplicationBus::Events::GetSerializeContext);
         if (!serializeContext)
@@ -129,8 +127,6 @@ namespace EMStudio
         delete m_notificationWindowManager;
         delete m_mainWindow;
         delete m_commandManager;
-
-        AZ::AllocatorInstance<UIAllocator>::Destroy();
 
         AZ::Interface<EMStudioManager>::Unregister(this);
     }
@@ -201,7 +197,7 @@ namespace EMStudio
             // Reflect shared data that might be used by multiple plugins.
             RenderOptions::Reflect(serializeContext);
         }
-        
+
         // Register the command event processing callback.
         m_eventProcessingCallback = new EventProcessingCallback();
         EMStudio::GetCommandManager()->RegisterCallback(m_eventProcessingCallback);
@@ -338,7 +334,7 @@ namespace EMStudio
 
     void EMStudioManager::JointSelectionChanged()
     {
-        AZ::Outcome<const QModelIndexList&> selectedRowIndicesOutcome;
+        AZ::Outcome<QModelIndexList> selectedRowIndicesOutcome;
         EMotionFX::SkeletonOutlinerRequestBus::BroadcastResult(selectedRowIndicesOutcome, &EMotionFX::SkeletonOutlinerRequests::GetSelectedRowIndices);
         if (!selectedRowIndicesOutcome.IsSuccess())
         {
@@ -360,6 +356,10 @@ namespace EMStudio
         }
     }
 
+    void EMStudioManager::JointHoveredChanged(size_t hoveredJointIndex)
+    {
+        m_hoveredJointIndex = hoveredJointIndex;
+    }
 
     // before executing a command
     void EMStudioManager::EventProcessingCallback::OnPreExecuteCommand(MCore::CommandGroup* group, MCore::Command* command, const MCore::CommandLine& commandLine)

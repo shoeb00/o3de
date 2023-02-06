@@ -109,7 +109,7 @@ namespace AZ
         * to the wrapped component's ID.
         * @return The type ID of the component.
         */
-        virtual const TypeId& GetUnderlyingComponentType() const { return RTTI_GetType(); }
+        virtual TypeId GetUnderlyingComponentType() const { return RTTI_GetType(); }
 
         /**
          * Sets the component ID.
@@ -349,7 +349,7 @@ namespace AZ
          * Gets the ID of the component.
          * @return Returns a pointer to the component ID.
          */
-        virtual const Uuid& GetUuid() const = 0;
+        virtual Uuid GetUuid() const = 0;
 
         /**
          * Reflects component data into a variety of contexts (script, serialize, edit, and so on).
@@ -438,7 +438,8 @@ namespace AZ
 
         using MutexType = AZStd::recursive_mutex;
     };
-    typedef AZ::EBus<ComponentDescriptor, ComponentDescriptorBusTraits> ComponentDescriptorBus;
+
+    using ComponentDescriptorBus = AZ::EBus<ComponentDescriptor, ComponentDescriptorBusTraits>;
 
     /**
      * Helps you create a custom implementation of a descriptor.
@@ -484,7 +485,7 @@ namespace AZ
          * Gets the ID of the component.
          * @return Returns a pointer to the component ID.
          */
-        const Uuid& GetUuid() const override
+        Uuid GetUuid() const override
         {
             return AzTypeInfo<ComponentClass>::Uuid();
         }
@@ -616,3 +617,5 @@ namespace AZ
         }
     };
 }
+
+DECLARE_EBUS_EXTERN_WITH_TRAITS(ComponentDescriptor, ComponentDescriptorBusTraits);

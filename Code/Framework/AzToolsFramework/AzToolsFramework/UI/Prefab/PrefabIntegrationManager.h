@@ -10,9 +10,11 @@
 
 #include <AzCore/Memory/SystemAllocator.h>
 
+#include <AzToolsFramework/ActionManager/ActionManagerRegistrationNotificationBus.h>
 #include <AzToolsFramework/API/ToolsApplicationAPI.h>
 #include <AzToolsFramework/Editor/EditorContextMenuBus.h>
 #include <AzToolsFramework/Entity/EditorEntityContextBus.h>
+#include <AzToolsFramework/Prefab/PrefabFocusNotificationBus.h>
 #include <AzToolsFramework/Prefab/PrefabPublicNotificationBus.h>
 #include <AzToolsFramework/UI/Prefab/LevelRootUiHandler.h>
 #include <AzToolsFramework/UI/Prefab/PrefabIntegrationBus.h>
@@ -25,14 +27,17 @@
 namespace AzToolsFramework
 {
     class ActionManagerInterface;
+    class HotKeyManagerInterface;
     class ContainerEntityInterface;
     class ReadOnlyEntityPublicInterface;
+    class ToolBarManagerInterface;
 
     namespace Prefab
     {
         class PrefabFocusInterface;
         class PrefabFocusPublicInterface;
         class PrefabLoaderInterface;
+        class PrefabOverridePublicInterface;
         class PrefabPublicInterface;
 
         class PrefabIntegrationManager final
@@ -40,8 +45,10 @@ namespace AzToolsFramework
             , public EditorEventsBus::Handler
             , public PrefabInstanceContainerNotificationBus::Handler
             , public PrefabIntegrationInterface
+            , private PrefabFocusNotificationBus::Handler
             , private PrefabPublicNotificationBus::Handler
             , private EditorEntityContextNotificationBus::Handler
+            , private ActionManagerRegistrationNotificationBus::Handler
         {
         public:
             AZ_CLASS_ALLOCATOR(PrefabIntegrationManager, AZ::SystemAllocator, 0);
@@ -54,7 +61,7 @@ namespace AzToolsFramework
             // EditorContextMenuBus overrides ...
             int GetMenuPosition() const override;
             AZStd::string GetMenuIdentifier() const override;
-            void PopulateEditorGlobalContextMenu(QMenu* menu, const AZ::Vector2& point, int flags) override;
+            void PopulateEditorGlobalContextMenu(QMenu* menu, const AZStd::optional<AzFramework::ScreenPoint>& point, int flags) override;
 
             // EditorEventsBus overrides ...
             void OnEscape() override;
@@ -62,6 +69,10 @@ namespace AzToolsFramework
             // EditorEntityContextNotificationBus overrides ...
             void OnStartPlayInEditorBegin() override;
             void OnStopPlayInEditor() override;
+
+            // PrefabFocusNotificationBus overrides ...
+            void OnPrefabFocusChanged(AZ::EntityId previousContainerEntityId, AZ::EntityId newContainerEntityId) override;
+            void OnPrefabFocusRefreshed() override;
 
             // PrefabInstanceContainerNotificationBus overrides ...
             void OnPrefabComponentActivate(AZ::EntityId entityId) override;
@@ -71,6 +82,12 @@ namespace AzToolsFramework
             AZ::EntityId CreateNewEntityAtPosition(const AZ::Vector3& position, AZ::EntityId parentId) override;
             int HandleRootPrefabClosure(TemplateId templateId) override;
             void SaveCurrentPrefab() override;
+
+            // ActionManagerRegistrationNotificationBus overrides ...
+            void OnActionUpdaterRegistrationHook() override;
+            void OnActionRegistrationHook() override;
+            void OnWidgetActionRegistrationHook() override;
+            void OnToolBarBindingHook() override;
 
         private:
             // PrefabPublicNotificationBus overrides ...
@@ -103,8 +120,9 @@ namespace AzToolsFramework
             void ContextMenu_Duplicate();
             void ContextMenu_DeleteSelected();
             void ContextMenu_DetachPrefab(AZ::EntityId containerEntity);
+            void ContextMenu_RevertOverrides(AZ::EntityId entityId);
 
-            // Shortcut setup handlers
+            // Shortcut setup handlers (for legacy action manager)
             void InitializeShortcuts();
             void UninitializeShortcuts();
 
@@ -132,7 +150,10 @@ namespace AzToolsFramework
             static PrefabPublicInterface* s_prefabPublicInterface;
 
             ActionManagerInterface* m_actionManagerInterface = nullptr;
+            HotKeyManagerInterface* m_hotKeyManagerInterface = nullptr;
+            PrefabOverridePublicInterface* m_prefabOverridePublicInterface = nullptr;
             ReadOnlyEntityPublicInterface* m_readOnlyEntityPublicInterface = nullptr;
+            ToolBarManagerInterface* m_toolBarManagerInterface = nullptr;
         };
     }
 }

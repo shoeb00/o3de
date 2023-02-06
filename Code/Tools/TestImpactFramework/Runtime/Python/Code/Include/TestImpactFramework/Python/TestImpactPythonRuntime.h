@@ -21,25 +21,41 @@ namespace TestImpact
     class PythonTestTarget;
     class PythonProductionTarget;
     class SourceCoveringTestsList;
+    class PythonTestSelectorAndPrioritizer;
 
     //! The python API exposed to the client responsible for all test runs and persistent data management.
     class PythonRuntime
     {
     public:
+        //! Constructs a runtime with the specified configuration and policies.
+        //! @param config The configuration used for this runtime instance.
+        //! @param dataFile The optional data file to be used instead of that specified in the config file.
+        //! @param previousRunDataFile The optional previous run data file to be used instead of that specified in the config file.
+        //! @param testsToExclude The tests to exclude from the run (will override any excluded tests in the config file).
+        //! @param suiteSet The test suites from which the coverage data and test selection will draw from.
+        //! @param suiteLabelExcludeSet Any tests with suites that match a label from this set will be excluded.
+        //! @param executionFailurePolicy Determines how to handle test targets that fail to execute.
+        //! @param executionFailureDraftingPolicy Determines how test targets that previously failed to execute are drafted into subsequent test sequences.
+        //! @param testFailurePolicy Determines how to handle test targets that report test failures.
+        //! @param integrationFailurePolicy Determines how to handle instances where the build system model and/or test impact analysis data is compromised.
+        //! @param testRunnerPolicy Determines which test runner type to use.
         PythonRuntime(
             PythonRuntimeConfig&& config,
             const AZStd::optional<RepoPath>& dataFile,
             [[maybe_unused]] const AZStd::optional<RepoPath>& previousRunDataFile,
             const AZStd::vector<ExcludedTarget>& testsToExclude,
-            SuiteType suiteFilter,
+            const SuiteSet& suiteSet,
+            const SuiteLabelExcludeSet& suiteLabelExcludeSet,
             Policy::ExecutionFailure executionFailurePolicy,
             Policy::FailedTestCoverage failedTestCoveragePolicy,
             Policy::TestFailure testFailurePolicy,
             Policy::IntegrityFailure integrationFailurePolicy,
-            Policy::TargetOutputCapture targetOutputCapture);
+            Policy::TargetOutputCapture targetOutputCapture,
+            Policy::TestRunner testRunnerPolicy);
 
         ~PythonRuntime();
 
+        //! Returns true if the runtime has test impact analysis data (either preexisting or generated).
         bool HasImpactAnalysisData() const;
 
         //! Runs a test sequence where all tests with a matching suite in the suite filter and also not on the excluded list are selected.
@@ -121,6 +137,14 @@ namespace TestImpact
         using ProductionTarget = PythonProductionTarget;
         using TestTarget = PythonTestTarget;
 
+        //! Selects the test targets covering a given change list and updates the enumeration cache of the test targets with sources
+        //! modified in that change list.
+        //! @param changeList The change list for which the covering tests and enumeration cache updates will be generated for.
+        //! @param testPrioritizationPolicy The test prioritization strategy to use for the selected test targets.
+        //! @returns The pair of selected test targets and discarded test targets.
+        AZStd::pair<AZStd::vector<const TestTarget*>, AZStd::vector<const TestTarget*>> SelectCoveringTestTargets(
+            const ChangeList& changeList, Policy::TestPrioritization testPrioritizationPolicy);
+
         //! Prepares the dynamic dependency map for a seed update by clearing all existing data and deleting the file that will be
         //! serialized.
         void ClearDynamicDependencyMapAndRemoveExistingFile();
@@ -131,17 +155,27 @@ namespace TestImpact
         //! Generates a regular/seed sequence policy state for the current runtime policy runtime configuration.
         SequencePolicyState GenerateSequencePolicyState() const;
 
+        //! Generates a safe impact analysis sequence policy state for the current runtime policy runtime configuration.
+        SafeImpactAnalysisSequencePolicyState GenerateSafeImpactAnalysisSequencePolicyState(
+            Policy::TestPrioritization testPrioritizationPolicy) const;
+
+        //! Generates an impact analysis sequence policy state for the current runtime policy runtime configuration.
+        ImpactAnalysisSequencePolicyState GenerateImpactAnalysisSequencePolicyState(
+            Policy::TestPrioritization testPrioritizationPolicy, Policy::DynamicDependencyMap dynamicDependencyMapPolicy) const;
+
         PythonRuntimeConfig m_config;
         RepoPath m_sparTiaFile;
-        SuiteType m_suiteFilter;
+        SuiteSet m_suiteSet;
+        SuiteLabelExcludeSet m_suiteLabelExcludeSet;
         Policy::ExecutionFailure m_executionFailurePolicy;
         Policy::FailedTestCoverage m_failedTestCoveragePolicy;
         Policy::TestFailure m_testFailurePolicy;
         Policy::IntegrityFailure m_integrationFailurePolicy;
         Policy::TargetOutputCapture m_targetOutputCapture;
+        Policy::TestRunner m_testRunnerPolicy;
         AZStd::unique_ptr<BuildTargetList<ProductionTarget, TestTarget>> m_buildTargets;
         AZStd::unique_ptr<DynamicDependencyMap<ProductionTarget, TestTarget>> m_dynamicDependencyMap;
-        AZStd::unique_ptr<TestSelectorAndPrioritizer<ProductionTarget, TestTarget>> m_testSelectorAndPrioritizer;
+        AZStd::unique_ptr<PythonTestSelectorAndPrioritizer> m_testSelectorAndPrioritizer;
         AZStd::unique_ptr<TestEngine> m_testEngine;
         AZStd::unique_ptr<TestTargetExclusionList<TestTarget>> m_testTargetExcludeList;
         AZStd::unordered_set<const TestTarget*> m_previouslyFailingTestTargets;

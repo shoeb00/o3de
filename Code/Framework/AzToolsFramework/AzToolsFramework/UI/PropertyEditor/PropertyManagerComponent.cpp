@@ -9,6 +9,7 @@
 #include <AzCore/Serialization/EditContext.h>
 #include <AzCore/Component/ComponentApplicationBus.h>
 #include <AzToolsFramework/ToolsComponents/EditorEntityIdContainer.h>
+#include <AzToolsFramework/UI/DocumentPropertyEditor/DocumentPropertyEditor.h>
 #include <AzToolsFramework/UI/PropertyEditor/PropertyAudioCtrlTypes.h>
 #include <AzToolsFramework/UI/PropertyEditor/GenericComboBoxCtrl.h>
 
@@ -116,6 +117,11 @@ namespace AzToolsFramework
             }
     #endif
             pHandler->RegisterDpeHandler();
+
+            auto propertyEditorSystemInterface = AZ::Interface<AZ::DocumentPropertyEditor::PropertyEditorSystemInterface>::Get();
+            AZ_Assert(propertyEditorSystemInterface,
+                "PropertyEditorSystemInterface was nullptr when attempting to register property handler adapter elements");
+            pHandler->RegisterWithPropertySystem(propertyEditorSystemInterface);
 
             m_Handlers.insert(AZStd::make_pair(pHandler->GetHandlerName(), pHandler));
 
@@ -257,7 +263,7 @@ namespace AzToolsFramework
             {
                 // does a base class have a handler?
                 AZ::SerializeContext* sc = nullptr;
-                EBUS_EVENT_RESULT(sc, AZ::ComponentApplicationBus, GetSerializeContext);
+                AZ::ComponentApplicationBus::BroadcastResult(sc, &AZ::ComponentApplicationBus::Events::GetSerializeContext);
                 AZStd::vector<const AZ::SerializeContext::ClassData*> classes;
 
                 sc->EnumerateBase(
@@ -296,6 +302,8 @@ namespace AzToolsFramework
             EditorEntityIdContainer::Reflect(context);
             AzToolsFramework::CReflectedVarAudioControl::Reflect(context);
             ReflectPropertyEditor(context);
+
+            DocumentPropertyEditorSettings::Reflect(context);
 
             // reflect data for script, serialization, editing...
             if (AZ::SerializeContext* serializeContext = azrtti_cast<AZ::SerializeContext*>(context))

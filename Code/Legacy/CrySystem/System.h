@@ -259,7 +259,7 @@ private:
     bool InitConsole();
     bool InitFileSystem();
     bool InitFileSystem_LoadEngineFolders(const SSystemInitParams& initParams);
-    bool InitAudioSystem(const SSystemInitParams& initParams);
+    bool InitAudioSystem();
 
     //@}
 
@@ -267,7 +267,6 @@ private:
     // Helper functions.
     //////////////////////////////////////////////////////////////////////////
     void CreateSystemVars();
-    void CreateAudioVars();
 
     void QueryVersionInfo();
     void LogVersion();
@@ -367,8 +366,6 @@ private: // ------------------------------------------------------
 #include AZ_RESTRICTED_FILE(System_h)
 #endif
 
-    ICVar* m_sys_audio_disable;
-
     ICVar* m_gpu_particle_physics;
 
     AZStd::string  m_sSavedRDriver;                                //!< to restore the driver when quitting the dedicated server
@@ -452,7 +449,6 @@ protected: // -------------------------------------------------------------
     CCmdLine*                                      m_pCmdLine;
 
     AZStd::string  m_currentLanguageAudio;
-    AZStd::string  m_systemConfigName; // computed from system_(hardwareplatform)_(assetsPlatform) - eg, system_android_android.cfg or system_windows_pc.cfg
 
     std::vector< std::pair<CTimeValue, float> > m_updateTimes;
 
@@ -471,6 +467,4 @@ protected: // -------------------------------------------------------------
     bool m_bIsAsserting;
 
     std::vector<IWindowMessageHandler*> m_windowMessageHandlers;
-    bool m_initedOSAllocator = false;
-    bool m_initedSysAllocator = false;
 };

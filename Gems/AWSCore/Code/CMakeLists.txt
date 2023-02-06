@@ -59,6 +59,13 @@ ly_create_alias(
         Gem::AWSCore
 )
 
+ly_create_alias(
+    NAME AWSCore.Unified
+    NAMESPACE Gem
+    TARGETS
+        Gem::AWSCore
+)
+
 if (PAL_TRAIT_BUILD_HOST_TOOLS)
 
     include(${pal_dir}/PAL_traits_editor_${PAL_PLATFORM_NAME_LOWERCASE}.cmake)
@@ -206,9 +213,12 @@ if(PAL_TRAIT_BUILD_TESTS_SUPPORTED)
                     Gem::AWSCore.Static
                     Gem::AWSCore.Editor.Static
         )
-        ly_add_googletest(
-            NAME Gem::AWSCore.Editor.Tests
-        )
+        set(SUPPORTED_PLATFORMS "Windows")
+        if ("${PAL_PLATFORM_NAME}" IN_LIST SUPPORTED_PLATFORMS)
+            ly_add_googletest(
+                NAME Gem::AWSCore.Editor.Tests
+            )
+        endif()
     endif()
 endif()
 

@@ -26,10 +26,9 @@ namespace StartingPointInput
         SCRIPTCANVAS_NODE(InputHandlerNodeable)
 
     public:
-        InputHandlerNodeable() = default;
-        virtual ~InputHandlerNodeable();
-        InputHandlerNodeable(const InputHandlerNodeable&) = default;
-        InputHandlerNodeable& operator=(const InputHandlerNodeable&) = default;
+        AZ_CLASS_ALLOCATOR(InputHandlerNodeable, AZ::SystemAllocator, 0);
+
+        ~InputHandlerNodeable() override;
 
     protected:
         void OnDeactivate() override;

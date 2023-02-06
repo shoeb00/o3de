@@ -64,7 +64,6 @@
 #include <Atom/RPI.Public/ViewportContextBus.h>
 #include <AtomToolsFramework/Viewport/ModularViewportCameraControllerRequestBus.h>
 
-
 #include "Objects/ComponentEntityObject.h"
 #include "ISourceControl.h"
 #include "UI/QComponentEntityEditorMainWindow.h"
@@ -79,9 +78,9 @@
 #include <Editor/DisplaySettings.h>
 #include <Editor/IconManager.h>
 #include <Editor/Settings.h>
-#include <Editor/StringDlg.h>
 #include <Editor/QtViewPaneManager.h>
 #include <Editor/EditorViewportSettings.h>
+#include <Editor/EditorViewportCamera.h>
 #include <Editor/Util/PathUtil.h>
 #include "CryEdit.h"
 #include "Undo/Undo.h"
@@ -431,7 +430,8 @@ DisplayContext* SandboxIntegrationManager::GetDC()
 void SandboxIntegrationManager::OnBeginUndo([[maybe_unused]] const char* label)
 {
     AzToolsFramework::UndoSystem::URSequencePoint* currentBatch = nullptr;
-    EBUS_EVENT_RESULT(currentBatch, AzToolsFramework::ToolsApplicationRequests::Bus, GetCurrentUndoBatch);
+    AzToolsFramework::ToolsApplicationRequests::Bus::BroadcastResult(
+        currentBatch, &AzToolsFramework::ToolsApplicationRequests::Bus::Events::GetCurrentUndoBatch);
 
     AZ_Assert(currentBatch, "No undo batch is active.");
 
@@ -617,7 +617,8 @@ int SandboxIntegrationManager::GetMenuPosition() const
     return aznumeric_cast<int>(AzToolsFramework::EditorContextMenuOrdering::TOP);
 }
 
-void SandboxIntegrationManager::PopulateEditorGlobalContextMenu(QMenu* menu, const AZ::Vector2& point, int flags)
+void SandboxIntegrationManager::PopulateEditorGlobalContextMenu(
+    QMenu* menu, const AZStd::optional<AzFramework::ScreenPoint>& point, int flags)
 {
     if (!IsLevelDocumentOpen())
     {
@@ -626,18 +627,18 @@ void SandboxIntegrationManager::PopulateEditorGlobalContextMenu(QMenu* menu, con
 
     if (flags & AzToolsFramework::EditorEvents::eECMF_USE_VIEWPORT_CENTER)
     {
-        CViewport* view = GetIEditor()->GetViewManager()->GetGameViewport();
         int width = 0;
         int height = 0;
         // If there is no 3D Viewport active to aid in the positioning of context menu
         // operations, we don't need to store anything but default values here. Any code
         // using these numbers for placement should default to the origin when there's
         // no 3D viewport to raycast into.
-        if (view)
+        if (const CViewport* view = GetIEditor()->GetViewManager()->GetGameViewport())
         {
             view->GetDimensions(&width, &height);
         }
-        m_contextMenuViewPoint.Set(static_cast<float>(width / 2), static_cast<float>(height / 2));
+
+        m_contextMenuViewPoint = AzFramework::ScreenPoint{ width / 2, height / 2 };
     }
     else
     {
@@ -993,7 +994,8 @@ void SandboxIntegrationManager::SetupSliceContextMenu_Modify(QMenu* menu, const 
 
     // Gather the set of relevant entities from the selected entities and all descendants
     AzToolsFramework::EntityIdSet relevantEntitiesSet;
-    EBUS_EVENT_RESULT(relevantEntitiesSet, AzToolsFramework::ToolsApplicationRequests::Bus, GatherEntitiesAndAllDescendents, selectedEntities);
+    AzToolsFramework::ToolsApplicationRequests::Bus::BroadcastResult(
+        relevantEntitiesSet, &AzToolsFramework::ToolsApplicationRequests::Bus::Events::GatherEntitiesAndAllDescendents, selectedEntities);
     AzToolsFramework::EntityIdList relevantEntities;
     relevantEntities.reserve(relevantEntitiesSet.size());
     for (AZ::EntityId& id : relevantEntitiesSet)
@@ -1061,7 +1063,8 @@ bool SandboxIntegrationManager::DestroyEditorRepresentation(AZ::EntityId entityI
     if (editor->GetObjectManager())
     {
         CEntityObject* object = nullptr;
-        EBUS_EVENT_ID_RESULT(object, entityId, AzToolsFramework::ComponentEntityEditorRequestBus, GetSandboxObject);
+        AzToolsFramework::ComponentEntityEditorRequestBus::EventResult(
+            object, entityId, &AzToolsFramework::ComponentEntityEditorRequestBus::Events::GetSandboxObject);
 
         if (object && (object->GetType() == OBJTYPE_AZENTITY))
         {
@@ -1116,18 +1119,24 @@ bool SandboxIntegrationManager::CanGoToSelectedEntitiesInViewports()
 
 bool SandboxIntegrationManager::CanGoToEntityOrChildren(const AZ::EntityId& entityId) const
 {
+    AZ::Entity* entity = nullptr;
+    AZ::ComponentApplicationBus::BroadcastResult(entity, &AZ::ComponentApplicationRequests::FindEntity, entityId);
+    if (entity == nullptr)
+    {
+        return false;
+    }
+
+    // If this is a layer entity, check if the layer has any children that are visible in the viewport
     bool isLayerEntity = false;
     AzToolsFramework::Layers::EditorLayerComponentRequestBus::EventResult(
         isLayerEntity,
         entityId,
         &AzToolsFramework::Layers::EditorLayerComponentRequestBus::Events::HasLayer);
-    // If this entity is not a layer
     if (!isLayerEntity)
     {
-        // check if the entity exists to determine if we can go to it (e.g. system & internal entities are not visible in the viewport)
-        AZ::Entity* entity = nullptr;
-        AZ::ComponentApplicationBus::BroadcastResult(entity, &AZ::ComponentApplicationRequests::FindEntity, entityId);
-        return entity != nullptr;
+        // Skip if this entity doesn't have a transform;
+        // UI entities and system components don't have transforms and thus aren't visible in the Editor viewport
+        return entity->GetTransform() != nullptr;
     }
 
     AZStd::vector<AZ::EntityId> layerChildren;
@@ -1302,7 +1311,8 @@ AZ::EntityId SandboxIntegrationManager::CreateNewEntityAtPosition(const AZ::Vect
             selectionCommand->SetParent(undo.GetUndoBatch());
             selectionCommand.release();
 
-            EBUS_EVENT(AzToolsFramework::ToolsApplicationRequests::Bus, SetSelectedEntities, selection);
+            AzToolsFramework::ToolsApplicationRequests::Bus::Broadcast(
+                &AzToolsFramework::ToolsApplicationRequests::Bus::Events::SetSelectedEntities, selection);
         }
     }
     else
@@ -1372,7 +1382,8 @@ AZStd::string SandboxIntegrationManager::GetLevelName()
 void SandboxIntegrationManager::OnContextReset()
 {
     // Deselect everything.
-    EBUS_EVENT(AzToolsFramework::ToolsApplicationRequests::Bus, SetSelectedEntities, AzToolsFramework::EntityIdList());
+    AzToolsFramework::ToolsApplicationRequests::Bus::Broadcast(
+        &AzToolsFramework::ToolsApplicationRequests::Bus::Events::SetSelectedEntities, AzToolsFramework::EntityIdList());
 
     std::vector<CBaseObject*> objects;
     objects.reserve(128);
@@ -1420,10 +1431,11 @@ void SandboxIntegrationManager::ContextMenu_NewEntity()
 
     // If we don't have a viewport active to aid in placement, the object
     // will be created at the origin.
-    if (CViewport* view = GetIEditor()->GetViewManager()->GetGameViewport())
+    if (CViewport* view = GetIEditor()->GetViewManager()->GetGameViewport();
+        view && m_contextMenuViewPoint.has_value())
     {
         worldPosition = AzToolsFramework::FindClosestPickIntersection(
-            view->GetViewportId(), AzFramework::ScreenPointFromVector2(m_contextMenuViewPoint), AzToolsFramework::EditorPickRayLength,
+            view->GetViewportId(), m_contextMenuViewPoint.value(), AzToolsFramework::EditorPickRayLength,
             AzToolsFramework::GetDefaultEntityPlacementDistance());
     }
 
@@ -1608,12 +1620,12 @@ void SandboxIntegrationManager::InstantiateSliceFromAssetId(const AZ::Data::Asse
 {
     AZ::Transform sliceWorldTransform = AZ::Transform::CreateIdentity();
 
-    CViewport* view = GetIEditor()->GetViewManager()->GetGameViewport();
     // If we don't have a viewport active to aid in placement, the slice
     // will be instantiated at the origin.
-    if (view)
+    if (CViewport* view = GetIEditor()->GetViewManager()->GetGameViewport())
     {
-        const QPoint viewPoint(static_cast<int>(m_contextMenuViewPoint.GetX()), static_cast<int>(m_contextMenuViewPoint.GetY()));
+        const QPoint viewPoint =
+            AzToolsFramework::ViewportInteraction::QPointFromScreenPoint(m_contextMenuViewPoint.value_or(AzFramework::ScreenPoint{}));
         sliceWorldTransform = AZ::Transform::CreateTranslation(LYVec3ToAZVec3(view->SnapToGrid(view->ViewToWorld(viewPoint))));
     }
 
@@ -1716,9 +1728,7 @@ void SandboxIntegrationManager::GoToEntitiesInViewports(const AzToolsFramework::
             const AZ::Transform nextCameraTransform =
                 AZ::Transform::CreateLookAt(aabb.GetCenter() - (forward * distanceToLookAt), aabb.GetCenter());
 
-            AtomToolsFramework::ModularViewportCameraControllerRequestBus::Event(
-                viewportContext->GetId(),
-                &AtomToolsFramework::ModularViewportCameraControllerRequestBus::Events::InterpolateToTransform, nextCameraTransform);
+            SandboxEditor::HandleDefaultViewportCameraTransitionFromSetting(nextCameraTransform);
         }
     }
 }
@@ -1750,8 +1760,8 @@ void SandboxIntegrationManager::ContextMenu_SelectSlice()
         }
     }
 
-    EBUS_EVENT(AzToolsFramework::ToolsApplicationRequests::Bus,
-        SetSelectedEntities, newSelectedEntities);
+    AzToolsFramework::ToolsApplicationRequests::Bus::Broadcast(
+        &AzToolsFramework::ToolsApplicationRequests::Bus::Events::SetSelectedEntities, newSelectedEntities);
 }
 
 void SandboxIntegrationManager::ContextMenu_PushEntitiesToSlice(AzToolsFramework::EntityIdList entities,
@@ -1764,7 +1774,7 @@ void SandboxIntegrationManager::ContextMenu_PushEntitiesToSlice(AzToolsFramework
     (void)affectEntireHierarchy;
 
     AZ::SerializeContext* serializeContext = nullptr;
-    EBUS_EVENT_RESULT(serializeContext, AZ::ComponentApplicationBus, GetSerializeContext);
+    AZ::ComponentApplicationBus::BroadcastResult(serializeContext, &AZ::ComponentApplicationBus::Events::GetSerializeContext);
     AZ_Assert(serializeContext, "No serialize context");
 
     AzToolsFramework::SliceUtilities::PushEntitiesModal(GetMainWindow(), entities, serializeContext);
@@ -1789,9 +1799,8 @@ void SandboxIntegrationManager::ContextMenu_ResetToSliceDefaults(AzToolsFramewor
 
 void SandboxIntegrationManager::GetSelectedEntities(AzToolsFramework::EntityIdList& entities)
 {
-    EBUS_EVENT_RESULT(entities,
-        AzToolsFramework::ToolsApplicationRequests::Bus,
-        GetSelectedEntities);
+    AzToolsFramework::ToolsApplicationRequests::Bus::BroadcastResult(
+        entities, &AzToolsFramework::ToolsApplicationRequests::Bus::Events::GetSelectedEntities);
 }
 
 void SandboxIntegrationManager::GetSelectedOrHighlightedEntities(AzToolsFramework::EntityIdList& entities)
@@ -1799,13 +1808,11 @@ void SandboxIntegrationManager::GetSelectedOrHighlightedEntities(AzToolsFramewor
     AzToolsFramework::EntityIdList selectedEntities;
     AzToolsFramework::EntityIdList highlightedEntities;
 
-    EBUS_EVENT_RESULT(selectedEntities,
-        AzToolsFramework::ToolsApplicationRequests::Bus,
-        GetSelectedEntities);
+    AzToolsFramework::ToolsApplicationRequests::Bus::BroadcastResult(
+        selectedEntities, &AzToolsFramework::ToolsApplicationRequests::Bus::Events::GetSelectedEntities);
 
-    EBUS_EVENT_RESULT(highlightedEntities,
-        AzToolsFramework::ToolsApplicationRequests::Bus,
-        GetHighlightedEntities);
+    AzToolsFramework::ToolsApplicationRequests::Bus::BroadcastResult(
+        highlightedEntities, &AzToolsFramework::ToolsApplicationRequests::Bus::Events::GetHighlightedEntities);
 
     entities = AZStd::move(selectedEntities);
 
@@ -1818,7 +1825,7 @@ void SandboxIntegrationManager::GetSelectedOrHighlightedEntities(AzToolsFramewor
     }
 }
 
-AZStd::string SandboxIntegrationManager::GetComponentEditorIcon(const AZ::Uuid& componentType, AZ::Component* component)
+AZStd::string SandboxIntegrationManager::GetComponentEditorIcon(const AZ::Uuid& componentType, const AZ::Component* component)
 {
     AZStd::string iconPath = GetComponentIconPath(componentType, AZ::Edit::Attributes::Icon, component);
     return iconPath;
@@ -1830,7 +1837,7 @@ AZStd::string SandboxIntegrationManager::GetComponentTypeEditorIcon(const AZ::Uu
 }
 
 AZStd::string SandboxIntegrationManager::GetComponentIconPath(const AZ::Uuid& componentType,
-    AZ::Crc32 componentIconAttrib, AZ::Component* component)
+    AZ::Crc32 componentIconAttrib, const AZ::Component* component)
 {
     AZ_PROFILE_FUNCTION(AzToolsFramework);
     if (componentIconAttrib != AZ::Edit::Attributes::Icon
@@ -1844,7 +1851,7 @@ AZStd::string SandboxIntegrationManager::GetComponentIconPath(const AZ::Uuid& co
     AZStd::string iconPath;
 
     AZ::SerializeContext* serializeContext = nullptr;
-    EBUS_EVENT_RESULT(serializeContext, AZ::ComponentApplicationBus, GetSerializeContext);
+    AZ::ComponentApplicationBus::BroadcastResult(serializeContext, &AZ::ComponentApplicationBus::Events::GetSerializeContext);
     AZ_Assert(serializeContext, "No serialize context");
 
     auto classData = serializeContext->FindClassData(componentType);
@@ -1916,6 +1923,15 @@ AZStd::string SandboxIntegrationManager::GetComponentIconPath(const AZ::Uuid& co
                 if (pathFound)
                 {
                     iconPath = AZStd::move(iconFullPath);
+                }
+                else
+                {
+                    AZ_Warning(
+                        "SandboxIntegration",
+                        false,
+                        "Unable to find icon path \"%s\" for component type: %s",
+                        iconPath.c_str(),
+                        classData->m_editData->m_name);
                 }
             }
         }

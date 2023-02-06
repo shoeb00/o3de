@@ -478,7 +478,7 @@ namespace RemoteTools
             {
                 if (msg->GetCustomBlobSize() > 0)
                 {
-                    void* blob = azmalloc(msg->GetCustomBlobSize(), 1, AZ::OSAllocator, "TmMsgBlob");
+                    void* blob = azmalloc(msg->GetCustomBlobSize(), 1, AZ::OSAllocator);
                     msgBuffer.Read(msg->GetCustomBlobSize(), blob);
                     msg->AddCustomBlob(blob, msg->GetCustomBlobSize(), true);
                 }
@@ -547,7 +547,7 @@ namespace RemoteTools
             }
         }
 
-        if (!m_joinThread->IsRunning())
+        if (m_joinThread && !m_joinThread->IsRunning())
         {
             m_joinThread->Join();
             m_joinThread->Start();

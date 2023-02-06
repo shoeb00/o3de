@@ -21,6 +21,7 @@ namespace AZ::Render
         : public SkyAtmosphereFeatureProcessorInterface
     {
     public:
+        AZ_CLASS_ALLOCATOR(SkyAtmosphereFeatureProcessor, AZ::SystemAllocator)
 
         AZ_RTTI(AZ::Render::SkyAtmosphereFeatureProcessor, "{FB3155E9-BA3C-487B-B251-EB4BF3465E02}", AZ::Render::SkyAtmosphereFeatureProcessorInterface);
 
@@ -32,6 +33,7 @@ namespace AZ::Render
         //! FeatureProcessor 
         void Activate() override;
         void Deactivate() override;
+        void AddRenderPasses(RPI::RenderPipeline* renderPipeline) override;
         void Render(const RenderPacket& packet) override;
 
         //! SkyAtmosphereFeatureProcessorInterface
@@ -42,13 +44,10 @@ namespace AZ::Render
     private:
 
         //! RPI::SceneNotificationBus::Handler
-        void OnRenderPipelinePassesChanged(RPI::RenderPipeline* renderPipeline) override;
-        void OnRenderPipelineAdded(RPI::RenderPipelinePtr pipeline) override;
-        void OnRenderPipelineRemoved(RPI::RenderPipeline* pipeline) override;
+        void OnRenderPipelineChanged(AZ::RPI::RenderPipeline* pipeline, RPI::SceneNotification::RenderPipelineChangeType changeType) override;
         
         void InitializeAtmosphere(AtmosphereId id);
         void UpdateBackgroundClearColor();
-        void CachePasses();
         bool HasValidAtmosphere();
             
         struct SkyAtmosphere

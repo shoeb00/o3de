@@ -59,6 +59,8 @@ set(FILES
     Source/HingeJointComponent.h
     Source/JointComponent.cpp
     Source/JointComponent.h
+    Source/PrismaticJointComponent.cpp
+    Source/PrismaticJointComponent.h
     Source/Pipeline/MeshAssetHandler.cpp
     Source/Pipeline/MeshAssetHandler.h
     Source/Pipeline/HeightFieldAssetHandler.cpp
@@ -102,6 +104,7 @@ set(FILES
     Include/PhysX/Debug/PhysXDebugConfiguration.h
     Include/PhysX/Debug/PhysXDebugInterface.h
     Include/PhysX/Configuration/PhysXConfiguration.h
+    Include/PhysX/Joint/PhysXJointRequestsBus.h
     Include/PhysX/Joint/Configuration/PhysXJointConfiguration.h
     Source/Common/PhysXSceneQueryHelpers.h
     Source/Common/PhysXSceneQueryHelpers.cpp
